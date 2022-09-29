@@ -1,31 +1,43 @@
-﻿using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using UnityStandardAssets.ImageEffects;
 using UnityEngine.SceneManagement;
 using System;
 using EFT.Weather;
-using DG.Tweening;
-
+using System.Collections.Generic;
+using BSG.CameraEffects;
+using HarmonyLib;
+using UnityEngine.Rendering;
 
 namespace AmandsGraphics
 {
-    internal class AmandsGraphicsClass : MonoBehaviour
+    public class AmandsGraphicsClass : MonoBehaviour
     {
+        private static GameObject FPSCamera;
+        private static Camera FPSCameraCamera;
+        private static float FPSCameraCameraFOV;
+        private static GameObject BaseOpticCamera;
+        private static PostProcessVolume FPSCameraPostProcessVolume;
+        private static PostProcessLayer FPSCameraPostProcessLayer;
+        private static UnityEngine.Rendering.PostProcessing.MotionBlur FPSCameraMotionBlur;
+        private static UnityEngine.Rendering.PostProcessing.DepthOfField FPSCameraDepthOfField;
+        private static float DepthOfFieldFocalLength;
+        private static bool DepthOfFieldMode;
         private static GameObject Weather;
         private static WeatherController weatherController;
-        private static GameObject FPSCamera;
-        private static PostProcessVolume FPSCameraPostProcessVolume;
-        private static UnityEngine.Rendering.PostProcessing.MotionBlur FPSCameraMotionBlur;
-        private static CC_Sharpen FPSCameraSharpen;
-        private static BloomAndFlares[] FPSCameraBloomAndFlares;
+        private static CC_Sharpen FPSCameraCC_Sharpen;
+        //private static BloomAndFlares[] FPSCameraBloomAndFlares;
+        private static Dictionary<BloomAndFlares, float> FPSCameraBloomAndFlares = new Dictionary<BloomAndFlares, float>();
         private static PrismEffects FPSCameraPrismEffects;
         private static CC_Vintage FPSCameraCC_Vintage;
         private static CustomGlobalFog FPSCameraCustomGlobalFog;
         private static Component FPSCameraGlobalFog;
         private static ColorCorrectionCurves FPSCameraColorCorrectionCurves;
+        private static NightVision FPSCameraNightVision;
+        private static HBAO FPSCameraHBAO;
+        public static HBAO_Core.AOSettings FPSCameraHBAOAOSettings;
+        public static HBAO_Core.ColorBleedingSettings FPSCameraHBAOColorBleedingSettings;
         private static string scene;
-        private static bool sceneEnabled;
         private static LevelSettings levelSettings;
         private static Vector3 defaulttoneValues;
         private static Vector3 defaultsecondaryToneValues;
@@ -34,6 +46,7 @@ namespace AmandsGraphics
         private static float defaultrampOffsetG;
         private static float defaultrampOffsetB;
         private static float defaultZeroLevel;
+        private static bool defaultFPSCameraSharpen;
         private static bool defaultFPSCameraCC_Vintage;
         private static bool defaultFPSCameraCustomGlobalFog;
         private static bool defaultFPSCameraGlobalFog;
@@ -44,413 +57,220 @@ namespace AmandsGraphics
         private static Color defaultNightVisionSkyColor;
         private static Color defaultNightVisionEquatorColor;
         private static Color defaultNightVisionGroundColor;
+        public static HBAO_Core.AOSettings defaultFPSCameraHBAOAOSettings;
+        public static HBAO_Core.ColorBleedingSettings defaultFPSCameraHBAOColorBleedingSettings;
         private static Light sunLight;
         private static GradientColorKey[] gradientColorKeys = { };
         private static GradientColorKey[] defaultGradientColorKeys = { };
+        private static bool defaultLightsUseLinearIntensity;
 
+        private static Dictionary<string, string> sceneLevelSettings = new Dictionary<string, string>();
 
+        public static bool NVG = false;
 
-        private bool DebugMode = false;
+        public bool GraphicsMode = false;
         private int UpdateInterval;
         public void Start()
         {
-            AmandsGraphicsPlugin.UnrealMotionBlurEnabled.SettingChanged += MotionBlurUpdated;
-            AmandsGraphicsPlugin.UnrealMotionBlurSampleCount.SettingChanged += MotionBlurUpdated;
-            AmandsGraphicsPlugin.UnrealMotionBlurShutterAngle.SettingChanged += MotionBlurUpdated;
+            sceneLevelSettings.Add("Laboratory_Scripts", "---Laboratory_levelsettings---");
+            sceneLevelSettings.Add("custom_Light", "---Custom_levelsettings---");
+            sceneLevelSettings.Add("Factory_Day", "---FactoryDay_levelsettings---");
+            sceneLevelSettings.Add("Factory_Night", "---FactoryNight_levelsettings---");
+            sceneLevelSettings.Add("Lighthouse_Abadonned_pier", "---Lighthouse_levelsettings---");
+            sceneLevelSettings.Add("Shopping_Mall_Terrain", "---Interchange_levelsettings---");
+            sceneLevelSettings.Add("woods_combined", "---Woods_levelsettings---");
+            sceneLevelSettings.Add("Reserve_Base_DesignStuff", "---Reserve_levelsettings---");
+            sceneLevelSettings.Add("shoreline_scripts", "---ShoreLine_levelsettings---");
+            sceneLevelSettings.Add("default", "!settings");
 
-            AmandsGraphicsPlugin.Labs.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Customs.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.FactoryDay.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.FactoryNight.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Lighthouse.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Interchange.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Woods.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Reserve.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Shoreline.SettingChanged += sceneEnabledUpdated;
-            AmandsGraphicsPlugin.Hideout.SettingChanged += sceneEnabledUpdated;
+            AmandsGraphicsPlugin.MotionBlur.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.MotionBlurSampleCount.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.MotionBlurShutterAngle.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HBAO.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HBAOIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HBAOSaturation.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HBAOAlbedoMultiplier.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.DepthOfField.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.DepthOfFieldFocusDistance.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.DepthOfFieldAperture.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.DepthOfFieldFocalLength.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.DepthOfFieldKernelSize.SettingChanged += SettingsUpdated;
 
-            AmandsGraphicsPlugin.LabsToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.LabsSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.CustomsToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.CustomsSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryDayToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryDaySecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryDaySkyColor.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryDayNVSkyColor.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryNightToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryNightSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryNightSkyColor.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FactoryNightNVSkyColor.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.LighthouseToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.LighthouseSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.InterchangeToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.InterchangeSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.WoodsToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.WoodsSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.ReserveToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.ReserveSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.ShorelineToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.ShorelineSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.HideoutToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.HideoutSecondaryToneValues.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.HideoutSkyColor.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.GlobalFogIntensity.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.DefaultGlobalFog.SettingChanged += GraphicsUpdated;
-            AmandsGraphicsPlugin.FogZeroLevel.SettingChanged += GraphicsUpdated;
+            AmandsGraphicsPlugin.Brightness.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.Tonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.useLut.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.BloomIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CC_Vintage.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CC_Sharpen.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomGlobalFog.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomGlobalFogIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.GlobalFog.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ColorCorrectionCurves.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LightsUseLinearIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.SunColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.SkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGColorsFix.SettingChanged += SettingsUpdated;
 
-            AmandsGraphicsPlugin.LightColorEnabled.SettingChanged += LightColorUpdated;
-            AmandsGraphicsPlugin.LightColorIndex0.SettingChanged += LightColorUpdated;
-            AmandsGraphicsPlugin.LightColorIndex1.SettingChanged += LightColorUpdated;
-            AmandsGraphicsPlugin.LightColorIndex2.SettingChanged += LightColorUpdated;
-            AmandsGraphicsPlugin.LightColorIndex3.SettingChanged += LightColorUpdated;
-            AmandsGraphicsPlugin.LightColorIndex4.SettingChanged += LightColorUpdated;
-            AmandsGraphicsPlugin.LightColorIndex5.SettingChanged += LightColorUpdated;
-        }
-        public void MotionBlurUpdated(object sender, EventArgs e)
-        {
-            if (FPSCameraMotionBlur != null)
-            {
-                FPSCameraMotionBlur.enabled.Override(AmandsGraphicsPlugin.UnrealMotionBlurEnabled.Value);
-                FPSCameraMotionBlur.sampleCount.Override(AmandsGraphicsPlugin.UnrealMotionBlurSampleCount.Value);
-                FPSCameraMotionBlur.shutterAngle.Override(AmandsGraphicsPlugin.UnrealMotionBlurShutterAngle.Value);
-            }
-        }
-        public void sceneEnabledUpdated(object sender, EventArgs e)
-        {
-            switch (scene)
-            {
-                case "Laboratory_Scripts":
-                    sceneEnabled = AmandsGraphicsPlugin.Labs.Value;
-                    break;
-                case "custom_Light":
-                    sceneEnabled = AmandsGraphicsPlugin.Customs.Value;
-                    break;
-                case "Factory_Day":
-                    sceneEnabled = AmandsGraphicsPlugin.FactoryDay.Value;
-                    break;
-                case "Factory_Night":
-                    sceneEnabled = AmandsGraphicsPlugin.FactoryNight.Value;
-                    break;
-                case "Lighthouse_Abadonned_pier":
-                    sceneEnabled = AmandsGraphicsPlugin.Lighthouse.Value;
-                    break;
-                case "Shopping_Mall_Terrain":
-                    sceneEnabled = AmandsGraphicsPlugin.Interchange.Value;
-                    break;
-                case "woods_combined":
-                    sceneEnabled = AmandsGraphicsPlugin.Woods.Value;
-                    break;
-                case "Reserve_Base_DesignStuff":
-                    sceneEnabled = AmandsGraphicsPlugin.Reserve.Value;
-                    break;
-                case "shoreline_scripts":
-                    sceneEnabled = AmandsGraphicsPlugin.Shoreline.Value;
-                    break;
-                default:
-                    sceneEnabled = AmandsGraphicsPlugin.Hideout.Value;
-                    break;
-            }
-            UpdateInterval = 200;
-        }
-        public void LightColorUpdated(object sender, EventArgs e)
-        {
-            if (!DebugMode)
-            {
-                gradientColorKeys[0] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex0.Value, 0.0f);
-                gradientColorKeys[1] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex1.Value, 0.5115129f);
-                gradientColorKeys[2] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex2.Value, 0.5266652f);
-                gradientColorKeys[3] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex3.Value, 0.5535668f);
-                gradientColorKeys[4] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex4.Value, 0.6971694f);
-                gradientColorKeys[5] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex5.Value, 0.9992523f);
-                if (Weather != null)
-                {
-                    if (weatherController != null && weatherController.TimeOfDayController != null)
-                    {
-                        if (AmandsGraphicsPlugin.LightColorEnabled.Value)
-                        {
-                            weatherController.TimeOfDayController.LightColor.colorKeys = gradientColorKeys;
-                        }
-                        else
-                        {
-                            weatherController.TimeOfDayController.LightColor.colorKeys = defaultGradientColorKeys;
-                        }
-                    }
-                }
-            }
-        }
-        public void GraphicsUpdated(object sender, EventArgs e)
-        {
-            if (!DebugMode)
-            {
-                if (FPSCameraPrismEffects != null)
-                {
-                    switch (scene)
-                    {
-                        case "Laboratory_Scripts":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsSecondaryToneValues.Value;
-                            break;
-                        case "custom_Light":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsSecondaryToneValues.Value;
-                            break;
-                        case "Factory_Day":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryDayToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryDaySecondaryToneValues.Value;
-                            if (levelSettings != null)
-                            {
-                                levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                            }
-                            break;
-                        case "Factory_Night":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightSecondaryToneValues.Value;
-                            if (levelSettings != null)
-                            {
-                                levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                            }
-                            break;
-                        case "Lighthouse_Abadonned_pier":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseSecondaryToneValues.Value;
-                            break;
-                        case "Shopping_Mall_Terrain":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeSecondaryToneValues.Value;
-                            break;
-                        case "woods_combined":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsSecondaryToneValues.Value;
-                            break;
-                        case "Reserve_Base_DesignStuff":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveSecondaryToneValues.Value;
-                            break;
-                        case "shoreline_scripts":
-                            FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ShorelineToneValues.Value;
-                            FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ShorelineSecondaryToneValues.Value;
-                            break;
-                       default:
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.HideoutToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.HideoutSecondaryToneValues.Value;
-                                if (levelSettings != null)
-                                {
-                                    levelSettings.SkyColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                    levelSettings.EquatorColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                    levelSettings.GroundColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                    levelSettings.NightVisionSkyColor = Color.black;
-                                    levelSettings.NightVisionEquatorColor = Color.black;
-                                    levelSettings.NightVisionGroundColor = Color.black;
-                                }
-                                break;
-                    }
-                }
-                if (levelSettings != null)
-                {
-                    levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                }
-                if (FPSCameraCustomGlobalFog != null)
-                {
-                    FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.GlobalFogIntensity.Value;
-                    FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.DefaultGlobalFog.Value ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
-                }
-            }
+            AmandsGraphicsPlugin.CustomsFogLevel.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseFogLevel.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeFogLevel.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsFogLevel.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveFogLevel.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineFogLevel.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.LabsTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomsTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineTonemap.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HideoutTonemap.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.LabsACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LabsACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomsACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomsACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineACESS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HideoutACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HideoutACESS.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.LabsFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LabsFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomsFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomsFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineFilmicS.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HideoutFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HideoutFilmicS.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.FactorySkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNVSkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightSkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.FactoryNightNVSkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.HideoutSkyColor.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.LightColorIndex0.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LightColorIndex1.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LightColorIndex2.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LightColorIndex3.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LightColorIndex4.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LightColorIndex5.SettingChanged += SettingsUpdated;
         }
         public void Update()
         {
-            if (Input.GetKeyDown(AmandsGraphicsPlugin.GraphicsToggle.Value.MainKey) && FPSCamera != null)
+            if (Input.GetKeyDown(AmandsGraphicsPlugin.GraphicsToggle.Value.MainKey) && (!Input.GetKey(KeyCode.LeftShift)) && FPSCamera != null)
             {
-                if (DebugMode)
+                if (GraphicsMode)
                 {
-                    DebugMode = false;
-                    if (FPSCameraPrismEffects != null)
-                    {
-                        FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                        switch (scene)
-                        {
-                            case "Laboratory_Scripts": 
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            case "custom_Light":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            case "Factory_Day":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryDayToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryDaySecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                if (levelSettings != null)
-                                {
-                                    levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;//new Color(0.09f, 0.08f, 0.07f);
-                                    levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                    levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                    levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                    levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                    levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                }
-                                break;
-                            case "Factory_Night":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                if (levelSettings != null)
-                                {
-                                    levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;//Color.black;
-                                    levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                    levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                    levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                    levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                    levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                }
-                                break;
-                            case "Lighthouse_Abadonned_pier":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            case "Shopping_Mall_Terrain":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            case "woods_combined":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            case "Reserve_Base_DesignStuff":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            case "shoreline_scripts":
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ShorelineToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ShorelineSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                break;
-                            default:
-                                FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.HideoutToneValues.Value;
-                                FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.HideoutSecondaryToneValues.Value;
-                                FPSCameraPrismEffects.useLut = false;
-                                if (levelSettings != null)
-                                {
-                                    levelSettings.SkyColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                    levelSettings.EquatorColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                    levelSettings.GroundColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                    levelSettings.NightVisionSkyColor = Color.black;
-                                    levelSettings.NightVisionEquatorColor = Color.black;
-                                    levelSettings.NightVisionGroundColor = Color.black;
-                                }
-                                break;
-                        }
-                    }
-                    if (levelSettings != null)
-                    {
-                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                    }
-                    if (FPSCameraSharpen != null)
-                    {
-                        FPSCameraSharpen.rampOffsetR = 0;
-                        FPSCameraSharpen.rampOffsetG = 0;
-                        FPSCameraSharpen.rampOffsetB = 0;
-                    }
-                    if (FPSCameraCC_Vintage != null)
-                    {
-                        FPSCameraCC_Vintage.SetEnabledUniversal(false);
-                    }
-                    if (FPSCameraCustomGlobalFog != null)
-                    {
-                        FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.GlobalFogIntensity.Value;
-                        FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.DefaultGlobalFog.Value ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
-                        if (scene != "Laboratory_Scripts" && scene != "custom_Light" && scene != "Lighthouse_Abadonned_pier" && scene != "Shopping_Mall_Terrain" && scene != "woods_combined" && scene != "Reserve_Base_DesignStuff" && scene != "shoreline_scripts")
-                        {
-                            FPSCameraCustomGlobalFog.SetEnabledUniversal(false);
-                        }
-                    }
-                    if (FPSCameraGlobalFog != null)
-                    {
-                        FPSCameraGlobalFog.SetEnabledUniversal(false);
-                    }
-                    if (FPSCameraColorCorrectionCurves != null)
-                    {
-                        FPSCameraColorCorrectionCurves.SetEnabledUniversal(false);
-                    }
-                    if (Weather != null)
-                    {
-                        if (weatherController != null && weatherController.TimeOfDayController != null && AmandsGraphicsPlugin.LightColorEnabled.Value)
-                        {
-                            weatherController.TimeOfDayController.LightColor.colorKeys = gradientColorKeys;
-                        }
-                    }
+                    GraphicsMode = false;
+                    ResetGraphics();
                 }
                 else
                 {
-                    DebugMode = true;
-                    if (FPSCameraPrismEffects != null)
-                    {
-                        FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
-                        FPSCameraPrismEffects.toneValues = defaulttoneValues;
-                        FPSCameraPrismEffects.secondaryToneValues = defaultsecondaryToneValues;
-                        FPSCameraPrismEffects.useLut = defaultuseLut;
-                    }
-                    if (levelSettings != null)
-                    {
-                        levelSettings.ZeroLevel = defaultZeroLevel;
-                        if (scene != "Laboratory_Scripts" && scene != "custom_Light" && scene != "Lighthouse_Abadonned_pier" && scene != "Shopping_Mall_Terrain" && scene != "woods_combined" && scene != "Reserve_Base_DesignStuff" && scene != "shoreline_scripts")
-                        {
-                            levelSettings.SkyColor = defaultSkyColor;
-                            levelSettings.EquatorColor = defaultEquatorColor;
-                            levelSettings.GroundColor = defaultGroundColor;
-                            levelSettings.NightVisionSkyColor = defaultNightVisionSkyColor;
-                            levelSettings.NightVisionEquatorColor = defaultNightVisionEquatorColor;
-                            levelSettings.NightVisionGroundColor = defaultNightVisionGroundColor;
-                        }
-                    }
-                    if (FPSCameraSharpen != null)
-                    {
-                        FPSCameraSharpen.rampOffsetR = defaultrampOffsetR;
-                        FPSCameraSharpen.rampOffsetG = defaultrampOffsetG;
-                        FPSCameraSharpen.rampOffsetB = defaultrampOffsetB;
-                    }
-                    if (FPSCameraCC_Vintage != null)
-                    {
-                        FPSCameraCC_Vintage.SetEnabledUniversal(defaultFPSCameraCC_Vintage);
-                    }
-                    if (FPSCameraCustomGlobalFog != null)
-                    {
-                        FPSCameraCustomGlobalFog.FuncStart = 1;
-                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
-                        FPSCameraCustomGlobalFog.SetEnabledUniversal(defaultFPSCameraCustomGlobalFog);
-                    }
-                    if (FPSCameraGlobalFog != null)
-                    {
-                        FPSCameraGlobalFog.SetEnabledUniversal(defaultFPSCameraGlobalFog);
-                    }
-                    if (FPSCameraColorCorrectionCurves != null)
-                    {
-                        FPSCameraColorCorrectionCurves.SetEnabledUniversal(defaultFPSCameraColorCorrectionCurves);
-                    }
-                    if (Weather != null)
-                    {
-                        if (weatherController != null && weatherController.TimeOfDayController != null)
-                        {
-                            weatherController.TimeOfDayController.LightColor.colorKeys = defaultGradientColorKeys;
-                        }
-                    }
+                    GraphicsMode = true;
+                    UpdateAmandsGraphics();
                 }
+            }
+            if (Input.GetKeyDown(AmandsGraphicsPlugin.GraphicsToggle.Value.MainKey) && Input.GetKey(KeyCode.LeftShift) && FPSCamera != null && GraphicsMode)
+            {
+                switch (AmandsGraphicsPlugin.DebugMode.Value)
+                {
+                    case EDebugMode.HBAO:
+                        AmandsGraphicsPlugin.HBAO.Value = !AmandsGraphicsPlugin.HBAO.Value;
+                        break;
+                    case EDebugMode.DefaultToACES:
+                        switch (AmandsGraphicsPlugin.Tonemap.Value)
+                        {
+                            case EGlobalTonemap.Default:
+                                AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.ACES;
+                                break;
+                            case EGlobalTonemap.ACES:
+                                AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.Default;
+                                break;
+                        }
+                        break;
+                    case EDebugMode.DefaultToFilmic:
+                        switch (AmandsGraphicsPlugin.Tonemap.Value)
+                        {
+                            case EGlobalTonemap.Default:
+                                AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.Filmic;
+                                break;
+                            case EGlobalTonemap.Filmic:
+                                AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.Default;
+                                break;
+                        }
+                        break;
+                    case EDebugMode.ACESToFilmic:
+                        switch (AmandsGraphicsPlugin.Tonemap.Value)
+                        {
+                            case EGlobalTonemap.ACES:
+                                AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.Filmic;
+                                break;
+                            case EGlobalTonemap.Filmic:
+                                AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.ACES;
+                                break;
+                        }
+                        break;
+                    case EDebugMode.useLut:
+                        AmandsGraphicsPlugin.useLut.Value = !AmandsGraphicsPlugin.useLut.Value;
+                        break;
+                    case EDebugMode.CC_Vintage:
+                        AmandsGraphicsPlugin.CC_Vintage.Value = !AmandsGraphicsPlugin.CC_Vintage.Value;
+                        break;
+                    case EDebugMode.CC_Sharpen:
+                        AmandsGraphicsPlugin.CC_Sharpen.Value = !AmandsGraphicsPlugin.CC_Sharpen.Value;
+                        break;
+                    case EDebugMode.CustomGlobalFog:
+                        AmandsGraphicsPlugin.CustomGlobalFog.Value = !AmandsGraphicsPlugin.CustomGlobalFog.Value;
+                        break;
+                    case EDebugMode.GlobalFog:
+                        AmandsGraphicsPlugin.GlobalFog.Value = !AmandsGraphicsPlugin.GlobalFog.Value;
+                        break;
+                    case EDebugMode.ColorCorrectionCurves:
+                        AmandsGraphicsPlugin.ColorCorrectionCurves.Value = !AmandsGraphicsPlugin.ColorCorrectionCurves.Value;
+                        break;
+                    case EDebugMode.LightsUseLinearIntensity:
+                        AmandsGraphicsPlugin.LightsUseLinearIntensity.Value = !AmandsGraphicsPlugin.LightsUseLinearIntensity.Value;
+                        break;
+                    case EDebugMode.SunColor:
+                        AmandsGraphicsPlugin.SunColor.Value = !AmandsGraphicsPlugin.SunColor.Value;
+                        break;
+                    case EDebugMode.SkyColor:
+                        AmandsGraphicsPlugin.SkyColor.Value = !AmandsGraphicsPlugin.SkyColor.Value;
+                        break;
+                    case EDebugMode.NVGColorsFix:
+                        AmandsGraphicsPlugin.NVGColorsFix.Value = !AmandsGraphicsPlugin.NVGColorsFix.Value;
+                        break;
+                }
+                UpdateAmandsGraphics();
             }
             UpdateInterval += 1;
             if (UpdateInterval > 200)
@@ -458,82 +278,37 @@ namespace AmandsGraphics
                 UpdateInterval = 0;
                 if (FPSCamera == null)
                 {
-                    scene = SceneManager.GetActiveScene().name;
-                    switch (scene)
-                    {
-                        case "Laboratory_Scripts":
-                            sceneEnabled = AmandsGraphicsPlugin.Labs.Value;
-                            break;
-                        case "custom_Light":
-                            sceneEnabled = AmandsGraphicsPlugin.Customs.Value;
-                            break;
-                        case "Factory_Day":
-                            sceneEnabled = AmandsGraphicsPlugin.FactoryDay.Value;
-                            break;
-                        case "Factory_Night":
-                            sceneEnabled = AmandsGraphicsPlugin.FactoryNight.Value;
-                            break;
-                        case "Lighthouse_Abadonned_pier":
-                            sceneEnabled = AmandsGraphicsPlugin.Lighthouse.Value;
-                            break;
-                        case "Shopping_Mall_Terrain":
-                            sceneEnabled = AmandsGraphicsPlugin.Interchange.Value;
-                            break;
-                        case "woods_combined":
-                            sceneEnabled = AmandsGraphicsPlugin.Woods.Value;
-                            break;
-                        case "Reserve_Base_DesignStuff":
-                            sceneEnabled = AmandsGraphicsPlugin.Reserve.Value;
-                            break;
-                        case "shoreline_scripts":
-                            sceneEnabled = AmandsGraphicsPlugin.Shoreline.Value;
-                            break;
-                        default:
-                            sceneEnabled = AmandsGraphicsPlugin.Hideout.Value;
-                            break;
-                    }
-                    if (!sceneEnabled) return;
                     FPSCamera = GameObject.Find("FPS Camera");
                     if (FPSCamera != null)
                     {
-                        DebugMode = false;
+                        defaultLightsUseLinearIntensity = GraphicsSettings.lightsUseLinearIntensity;
+                        if (FPSCameraCamera == null)
+                        {
+                            FPSCameraCamera = FPSCamera.GetComponent<Camera>();
+                        }
                         FPSCameraPostProcessVolume = FPSCamera.GetComponent<PostProcessVolume>();
                         if (FPSCameraPostProcessVolume != null)
                         {
                             FPSCameraPostProcessVolume.profile.TryGetSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>(out FPSCameraMotionBlur);
-                            if (FPSCameraMotionBlur != null)
-                            {
-                                FPSCameraMotionBlur.enabled.Override(AmandsGraphicsPlugin.UnrealMotionBlurEnabled.Value);
-                                FPSCameraMotionBlur.sampleCount.Override(AmandsGraphicsPlugin.UnrealMotionBlurSampleCount.Value);
-                                FPSCameraMotionBlur.shutterAngle.Override(AmandsGraphicsPlugin.UnrealMotionBlurShutterAngle.Value);
-                            }
-                            else
+                            if (FPSCameraMotionBlur == null)
                             {
                                 FPSCameraPostProcessVolume.profile.AddSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>();
                                 FPSCameraPostProcessVolume.profile.TryGetSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>(out FPSCameraMotionBlur);
-                                if (FPSCameraMotionBlur != null)
-                                {
-                                    FPSCameraMotionBlur.enabled.Override(AmandsGraphicsPlugin.UnrealMotionBlurEnabled.Value);
-                                    FPSCameraMotionBlur.sampleCount.Override(AmandsGraphicsPlugin.UnrealMotionBlurSampleCount.Value);
-                                    FPSCameraMotionBlur.shutterAngle.Override(AmandsGraphicsPlugin.UnrealMotionBlurShutterAngle.Value);
-                                }
                             }
                         }
-                        FPSCameraSharpen = FPSCamera.GetComponent<CC_Sharpen>();
-                        if (FPSCameraSharpen != null)
+                        FPSCameraPostProcessLayer = FPSCamera.GetComponent<PostProcessLayer>();
+                        if (FPSCameraPostProcessLayer != null)
                         {
-                            defaultrampOffsetR = FPSCameraSharpen.rampOffsetR;
-                            defaultrampOffsetG = FPSCameraSharpen.rampOffsetG;
-                            defaultrampOffsetB = FPSCameraSharpen.rampOffsetB;
-                            FPSCameraSharpen.SetEnabledUniversal(true);
-                            FPSCameraSharpen.rampOffsetR = 0;
-                            FPSCameraSharpen.rampOffsetG = 0;
-                            FPSCameraSharpen.rampOffsetB = 0;
+                            FPSCameraDepthOfField = Traverse.Create(FPSCameraPostProcessLayer).Field("m_Bundles").GetValue<Dictionary<Type, PostProcessBundle>>()[typeof(UnityEngine.Rendering.PostProcessing.DepthOfField)].settings as UnityEngine.Rendering.PostProcessing.DepthOfField;
+                            DepthOfFieldFocalLength = AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value;
                         }
-                        FPSCameraBloomAndFlares = FPSCamera.GetComponents<BloomAndFlares>();
-                        foreach (BloomAndFlares bloomAndFlares in FPSCameraBloomAndFlares)
+                        FPSCameraCC_Sharpen = FPSCamera.GetComponent<CC_Sharpen>();
+                        if (FPSCameraCC_Sharpen != null)
                         {
-                            bloomAndFlares.bloomIntensity *= AmandsGraphicsPlugin.BloomIntensity.Value;
+                            defaultFPSCameraSharpen = FPSCameraCC_Sharpen.IsEnabledUniversal();
+                            defaultrampOffsetR = FPSCameraCC_Sharpen.rampOffsetR;
+                            defaultrampOffsetG = FPSCameraCC_Sharpen.rampOffsetG;
+                            defaultrampOffsetB = FPSCameraCC_Sharpen.rampOffsetB;
                         }
                         FPSCameraPrismEffects = FPSCamera.GetComponent<PrismEffects>();
                         if (FPSCameraPrismEffects != null)
@@ -541,186 +316,34 @@ namespace AmandsGraphics
                             defaulttoneValues = FPSCameraPrismEffects.toneValues;
                             defaultsecondaryToneValues = FPSCameraPrismEffects.secondaryToneValues;
                             defaultuseLut = FPSCameraPrismEffects.useLut;
-                            switch (scene)
-                            {
-                                case "Laboratory_Scripts":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---Laboratory_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                case "custom_Light":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---Custom_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                case "Factory_Day":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryDayToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryDaySecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---FactoryDay_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                        defaultSkyColor = levelSettings.SkyColor;
-                                        defaultEquatorColor = levelSettings.EquatorColor;
-                                        defaultGroundColor = levelSettings.GroundColor;
-                                        defaultNightVisionSkyColor = levelSettings.NightVisionSkyColor;
-                                        defaultNightVisionEquatorColor = levelSettings.NightVisionEquatorColor;
-                                        defaultNightVisionGroundColor = levelSettings.NightVisionGroundColor;
-                                        levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;//new Color(0.09f, 0.08f, 0.07f);
-                                        levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                        levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryDaySkyColor.Value / 10;
-                                        levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                        levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                        levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryDayNVSkyColor.Value / 10;
-                                    }
-                                    sunLight = GameObject.Find("sun").GetComponent<Light>();
-                                    if (sunLight != null)
-                                    {
-                                    }
-                                    break;
-                                case "Factory_Night":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---FactoryNight_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                        defaultSkyColor = levelSettings.SkyColor;
-                                        defaultEquatorColor = levelSettings.EquatorColor;
-                                        defaultGroundColor = levelSettings.GroundColor;
-                                        defaultNightVisionSkyColor = levelSettings.NightVisionSkyColor;
-                                        defaultNightVisionEquatorColor = levelSettings.NightVisionEquatorColor;
-                                        defaultNightVisionGroundColor = levelSettings.NightVisionGroundColor;
-                                        levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;//Color.black;
-                                        levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                        levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                                        levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                        levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                        levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                                    }
-                                    break;
-                                case "Lighthouse_Abadonned_pier":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---Lighthouse_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                case "Shopping_Mall_Terrain":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---Interchange_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                case "woods_combined":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---Woods_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                case "Reserve_Base_DesignStuff":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---Reserve_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                case "shoreline_scripts":
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ShorelineToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ShorelineSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("---ShoreLine_levelsettings---").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                    }
-                                    break;
-                                default:
-                                    FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
-                                    FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.HideoutToneValues.Value;
-                                    FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.HideoutSecondaryToneValues.Value;
-                                    FPSCameraPrismEffects.useLut = false;
-                                    levelSettings = GameObject.Find("!settings").GetComponent<LevelSettings>();
-                                    if (levelSettings != null)
-                                    {
-                                        defaultZeroLevel = levelSettings.ZeroLevel;
-                                        levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.FogZeroLevel.Value;
-                                        defaultSkyColor = levelSettings.SkyColor;
-                                        defaultEquatorColor = levelSettings.EquatorColor;
-                                        defaultGroundColor = levelSettings.GroundColor;
-                                        defaultNightVisionSkyColor = levelSettings.NightVisionSkyColor;
-                                        defaultNightVisionEquatorColor = levelSettings.NightVisionEquatorColor;
-                                        defaultNightVisionGroundColor = levelSettings.NightVisionGroundColor;
-                                        levelSettings.SkyColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                        levelSettings.EquatorColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                        levelSettings.GroundColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
-                                        levelSettings.NightVisionSkyColor = Color.black;
-                                        levelSettings.NightVisionEquatorColor = Color.black;
-                                        levelSettings.NightVisionGroundColor = Color.black;
-                                    }
-                                    break;
-                            }
+                        }
+                        FPSCameraBloomAndFlares.Clear();
+                        foreach (BloomAndFlares bloomAndFlares in FPSCamera.GetComponents<BloomAndFlares>())
+                        {
+                            FPSCameraBloomAndFlares.Add(bloomAndFlares, bloomAndFlares.bloomIntensity);
+                        }
+                        scene = SceneManager.GetActiveScene().name;
+                        if (!sceneLevelSettings.ContainsKey(scene)) scene = "default";
+                        levelSettings = GameObject.Find(sceneLevelSettings[scene]).GetComponent<LevelSettings>();
+                        if (levelSettings != null)
+                        {
+                            defaultZeroLevel = levelSettings.ZeroLevel;
+                            defaultSkyColor = levelSettings.SkyColor;
+                            defaultEquatorColor = levelSettings.EquatorColor;
+                            defaultGroundColor = levelSettings.GroundColor;
+                            defaultNightVisionSkyColor = levelSettings.NightVisionSkyColor;
+                            defaultNightVisionEquatorColor = levelSettings.NightVisionEquatorColor;
+                            defaultNightVisionGroundColor = levelSettings.NightVisionGroundColor;
                         }
                         FPSCameraCC_Vintage = FPSCamera.GetComponent<CC_Vintage>();
                         if (FPSCameraCC_Vintage != null)
                         {
                             defaultFPSCameraCC_Vintage = FPSCameraCC_Vintage.IsEnabledUniversal();
-                            FPSCameraCC_Vintage.SetEnabledUniversal(false);
                         }
                         FPSCameraCustomGlobalFog = FPSCamera.GetComponent<CustomGlobalFog>();
                         if (FPSCameraCustomGlobalFog != null)
                         {
-                            FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.GlobalFogIntensity.Value;
-                            FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.DefaultGlobalFog.Value ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
                             defaultFPSCameraCustomGlobalFog = FPSCameraCustomGlobalFog.IsEnabledUniversal();
-                            if (scene != "Laboratory_Scripts" && scene != "custom_Light" && scene != "Lighthouse_Abadonned_pier" && scene != "Shopping_Mall_Terrain" && scene != "woods_combined" && scene != "Reserve_Base_DesignStuff" && scene != "shoreline_scripts")
-                            {
-                                FPSCameraCustomGlobalFog.SetEnabledUniversal(false);
-                            }
                         }
                         foreach (Component component in FPSCamera.GetComponents<Component>())
                         {
@@ -728,7 +351,6 @@ namespace AmandsGraphics
                             {
                                 FPSCameraGlobalFog = component;
                                 defaultFPSCameraGlobalFog = FPSCameraGlobalFog.IsEnabledUniversal();
-                                FPSCameraGlobalFog.SetEnabledUniversal(false);
                                 break;
                             }
                         }
@@ -736,32 +358,542 @@ namespace AmandsGraphics
                         if (FPSCameraColorCorrectionCurves != null)
                         {
                             defaultFPSCameraColorCorrectionCurves = FPSCameraColorCorrectionCurves.IsEnabledUniversal();
-                            FPSCameraColorCorrectionCurves.SetEnabledUniversal(false);
                         }
                         Weather = GameObject.Find("Weather");
                         if (Weather != null)
                         {
                             weatherController = Weather.GetComponent<WeatherController>();
-                            if (weatherController.TimeOfDayController != null)
+                            if (weatherController != null && weatherController.TimeOfDayController != null)
                             {
                                 defaultGradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;
-                                gradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;//new GradientColorKey[] { new GradientColorKey(Color.black, 0.0f), new GradientColorKey(Color.black, 0.5115129f), new GradientColorKey(Color.black, 0.5266652f), new GradientColorKey(Color.black, 0.5535668f), new GradientColorKey(Color.black, 0.6971694f), new GradientColorKey(Color.black, 0.9992523f) };
-                                gradientColorKeys[0] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex0.Value, 0.0f);
-                                gradientColorKeys[1] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex1.Value, 0.5115129f);
-                                gradientColorKeys[2] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex2.Value, 0.5266652f);
-                                gradientColorKeys[3] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex3.Value, 0.5535668f);
-                                gradientColorKeys[4] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex4.Value, 0.6971694f);
-                                gradientColorKeys[5] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex5.Value, 0.9992523f);
-                                if (AmandsGraphicsPlugin.LightColorEnabled.Value)
-                                {
-                                    weatherController.TimeOfDayController.LightColor.colorKeys = gradientColorKeys;
-                                }
                             }
                         }
+                        FPSCameraNightVision = FPSCamera.GetComponent<NightVision>();
+                        if (FPSCameraNightVision != null)
+                        {
+                            NVG = FPSCameraNightVision.On;
+                        }
+                        FPSCameraHBAO = FPSCamera.GetComponent<HBAO>();
+                        if (FPSCameraHBAO != null)
+                        {
+                            defaultFPSCameraHBAOAOSettings = FPSCameraHBAO.aoSettings;
+                            defaultFPSCameraHBAOColorBleedingSettings = FPSCameraHBAO.colorBleedingSettings;
+                            FPSCameraHBAOAOSettings = FPSCameraHBAO.aoSettings;
+                            FPSCameraHBAOColorBleedingSettings = FPSCameraHBAO.colorBleedingSettings;
+                        }
+                        GraphicsMode = true;
+                        UpdateAmandsGraphics();
                     }
+                }
+                if (BaseOpticCamera == null)
+                {
+                    BaseOpticCamera = GameObject.Find("BaseOpticCamera(Clone)");
+                }
+            }
+            if (AmandsGraphicsPlugin.DepthOfField.Value && FPSCameraDepthOfField != null && FPSCameraCamera != null)
+            {
+                if (FPSCameraCameraFOV >= FPSCameraCamera.fieldOfView)
+                {
+                    DepthOfFieldMode = FPSCameraCamera.fieldOfView < (AmandsGraphicsPlugin.DepthOfFieldFOV.Value - 0.01f);
+                }
+                else
+                {
+                    DepthOfFieldMode = FPSCameraCamera.fieldOfView < 35.01f;
+                }
+                FPSCameraCameraFOV = FPSCameraCamera.fieldOfView;
+                DepthOfFieldFocalLength += ((((BaseOpticCamera != null ? BaseOpticCamera.activeSelf : true) && DepthOfFieldMode) ? AmandsGraphicsPlugin.DepthOfFieldFocalLength.Value : AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value) - DepthOfFieldFocalLength) * AmandsGraphicsPlugin.DepthOfFieldSpeed.Value; //  FOV 35.99f
+                FPSCameraDepthOfField.focalLength.value = DepthOfFieldFocalLength;
+                FPSCameraDepthOfField.enabled.value = DepthOfFieldFocalLength > (AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value + 0.1f);
+            }
+        }
+        public void UpdateAmandsGraphics()
+        {
+            GraphicsSettings.lightsUseLinearIntensity = AmandsGraphicsPlugin.LightsUseLinearIntensity.Value;
+            if (FPSCameraMotionBlur != null)
+            {
+                FPSCameraMotionBlur.enabled.Override(AmandsGraphicsPlugin.MotionBlur.Value);
+                FPSCameraMotionBlur.sampleCount.Override(AmandsGraphicsPlugin.MotionBlurSampleCount.Value);
+                FPSCameraMotionBlur.shutterAngle.Override(AmandsGraphicsPlugin.MotionBlurShutterAngle.Value);
+            }
+            if (FPSCameraDepthOfField != null)
+            {
+                FPSCameraDepthOfField.enabled.value = false;
+                FPSCameraDepthOfField.focusDistance.value = AmandsGraphicsPlugin.DepthOfFieldFocusDistance.Value;
+                FPSCameraDepthOfField.aperture.value = AmandsGraphicsPlugin.DepthOfFieldAperture.Value;
+                FPSCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.DepthOfFieldKernelSize.Value;
+            }
+            if (FPSCameraHBAO != null)
+            {
+                if (AmandsGraphicsPlugin.HBAO.Value)
+                {
+                    FPSCameraHBAOAOSettings.intensity = AmandsGraphicsPlugin.HBAOIntensity.Value;
+                    FPSCameraHBAOColorBleedingSettings.saturation = AmandsGraphicsPlugin.HBAOSaturation.Value;
+                    FPSCameraHBAOColorBleedingSettings.albedoMultiplier = AmandsGraphicsPlugin.HBAOAlbedoMultiplier.Value;
+                    FPSCameraHBAO.aoSettings = FPSCameraHBAOAOSettings;
+                    FPSCameraHBAO.colorBleedingSettings = FPSCameraHBAOColorBleedingSettings;
+                }
+                else
+                {
+                    FPSCameraHBAO.aoSettings = defaultFPSCameraHBAOAOSettings;
+                    FPSCameraHBAO.colorBleedingSettings = defaultFPSCameraHBAOColorBleedingSettings;
+                }
+            }
+            if (FPSCameraPrismEffects != null)
+            {
+                switch (AmandsGraphicsPlugin.Tonemap.Value)
+                {
+                    case EGlobalTonemap.Default:
+                        DefaultTonemap();
+                        break;
+                    case EGlobalTonemap.ACES:
+                        ACESTonemap();
+                        break;
+                    case EGlobalTonemap.Filmic:
+                        FilmicTonemap();
+                        break;
+                    case EGlobalTonemap.PerMap:
+                        PerMapTonemap();
+                        break;
+                }
+                FPSCameraPrismEffects.useLut = AmandsGraphicsPlugin.useLut.Value ? defaultuseLut : false;
+            }
+            foreach (var BloomAndFlares in FPSCameraBloomAndFlares)
+            {
+                BloomAndFlares.Key.bloomIntensity = BloomAndFlares.Value * AmandsGraphicsPlugin.BloomIntensity.Value;
+            }
+            if (Weather != null && weatherController != null && weatherController.TimeOfDayController != null)
+            {
+                if (AmandsGraphicsPlugin.SunColor.Value)
+                {
+                    gradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;
+                    gradientColorKeys[0] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex0.Value, 0.0f);
+                    gradientColorKeys[1] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex1.Value, 0.5115129f);
+                    gradientColorKeys[2] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex2.Value, 0.5266652f);
+                    gradientColorKeys[3] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex3.Value, 0.5535668f);
+                    gradientColorKeys[4] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex4.Value, 0.6971694f);
+                    gradientColorKeys[5] = new GradientColorKey(AmandsGraphicsPlugin.LightColorIndex5.Value, 0.9992523f);
+                    weatherController.TimeOfDayController.LightColor.colorKeys = gradientColorKeys;
+                }
+                else
+                {
+                    weatherController.TimeOfDayController.LightColor.colorKeys = defaultGradientColorKeys;
+                }
+            }
+            if (levelSettings != null)
+            {
+                if (AmandsGraphicsPlugin.SkyColor.Value)
+                {
+                    switch (scene)
+                    {
+                        case "Laboratory_Scripts":
+                        case "custom_Light":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
+                            break;
+                        case "Lighthouse_Abadonned_pier":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value;
+                            break;
+                        case "Shopping_Mall_Terrain":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value;
+                            break;
+                        case "woods_combined":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value;
+                            break;
+                        case "Reserve_Base_DesignStuff":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ReserveFogLevel.Value;
+                            break;
+                        case "shoreline_scripts":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ShorelineFogLevel.Value;
+                            break;
+                        case "Factory_Day":
+                            levelSettings.SkyColor = AmandsGraphicsPlugin.FactorySkyColor.Value / 10;
+                            levelSettings.EquatorColor = AmandsGraphicsPlugin.FactorySkyColor.Value / 10;
+                            levelSettings.GroundColor = AmandsGraphicsPlugin.FactorySkyColor.Value / 10;
+                            levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNVSkyColor.Value / 10;
+                            levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNVSkyColor.Value / 10;
+                            levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNVSkyColor.Value / 10;
+                            break;
+                        case "Factory_Night":
+                            levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
+                            levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
+                            levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
+                            levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
+                            levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
+                            levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
+                            break;
+                        default:
+                            levelSettings.SkyColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
+                            levelSettings.EquatorColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
+                            levelSettings.GroundColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
+                            levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
+                            levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
+                            levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (scene)
+                    {
+                        case "Laboratory_Scripts":
+                        case "custom_Light":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
+                            break;
+                        case "Lighthouse_Abadonned_pier":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value;
+                            break;
+                        case "Shopping_Mall_Terrain":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value;
+                            break;
+                        case "woods_combined":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value;
+                            break;
+                        case "Reserve_Base_DesignStuff":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ReserveFogLevel.Value;
+                            break;
+                        case "shoreline_scripts":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ShorelineFogLevel.Value;
+                            break;
+                    }
+                    levelSettings.SkyColor = defaultSkyColor;
+                    levelSettings.EquatorColor = defaultEquatorColor;
+                    levelSettings.GroundColor = defaultGroundColor;
+                    levelSettings.NightVisionSkyColor = defaultNightVisionSkyColor;
+                    levelSettings.NightVisionEquatorColor = defaultNightVisionEquatorColor;
+                    levelSettings.NightVisionGroundColor = defaultNightVisionGroundColor;
+                }
+            }
+            if (FPSCameraCC_Vintage != null)
+            {
+                FPSCameraCC_Vintage.SetEnabledUniversal(AmandsGraphicsPlugin.CC_Vintage.Value);
+            }
+            if (FPSCameraCC_Sharpen != null)
+            {
+                if (AmandsGraphicsPlugin.CC_Sharpen.Value)
+                {
+                    FPSCameraCC_Sharpen.SetEnabledUniversal(defaultFPSCameraSharpen);
+                    FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
+                    FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
+                    FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
+                }
+                else
+                {
+                    FPSCameraCC_Sharpen.SetEnabledUniversal(true);
+                    FPSCameraCC_Sharpen.rampOffsetR = 0f;
+                    FPSCameraCC_Sharpen.rampOffsetG = 0f;
+                    FPSCameraCC_Sharpen.rampOffsetB = 0f;
+                }
+            }
+            if (FPSCameraCustomGlobalFog != null)
+            {
+                if (AmandsGraphicsPlugin.CustomGlobalFog.Value)
+                {
+                    FPSCameraCustomGlobalFog.SetEnabledUniversal(defaultFPSCameraCustomGlobalFog);
+                    FPSCameraCustomGlobalFog.FuncStart = 1f;
+                    FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
+                }
+                else
+                {
+                    FPSCameraCustomGlobalFog.SetEnabledUniversal((scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog);
+                    FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
+                    FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
+                }
+            }
+            if (FPSCameraGlobalFog != null)
+            {
+                FPSCameraGlobalFog.SetEnabledUniversal(AmandsGraphicsPlugin.GlobalFog.Value);
+            }
+            if (FPSCameraColorCorrectionCurves != null)
+            {
+                FPSCameraColorCorrectionCurves.SetEnabledUniversal(AmandsGraphicsPlugin.ColorCorrectionCurves.Value);
+            }
+            // NVG FIX
+            if (AmandsGraphicsPlugin.NVGColorsFix.Value && NVG)
+            {
+                if (FPSCameraPrismEffects != null)
+                {
+                    FPSCameraPrismEffects.useLut = defaultuseLut;
+                }
+                if (levelSettings != null)
+                {
+                    levelSettings.ZeroLevel = defaultZeroLevel;
+                }
+                if (FPSCameraCC_Vintage != null)
+                {
+                    FPSCameraCC_Vintage.SetEnabledUniversal(defaultFPSCameraCC_Vintage);
+                }
+                if (FPSCameraCC_Sharpen != null)
+                {
+                    FPSCameraCC_Sharpen.SetEnabledUniversal(defaultFPSCameraSharpen);
+                    FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
+                    FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
+                    FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
+                }
+                if (FPSCameraColorCorrectionCurves != null)
+                {
+                    FPSCameraColorCorrectionCurves.SetEnabledUniversal(defaultFPSCameraColorCorrectionCurves);
                 }
             }
         }
+        private void ResetGraphics()
+        {
+            GraphicsSettings.lightsUseLinearIntensity = defaultLightsUseLinearIntensity;
+            if (FPSCameraHBAO != null)
+            {
+                FPSCameraHBAO.aoSettings = defaultFPSCameraHBAOAOSettings;
+                FPSCameraHBAO.colorBleedingSettings = defaultFPSCameraHBAOColorBleedingSettings;
+            }
+            if (FPSCameraPrismEffects != null)
+            {
+                FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
+                FPSCameraPrismEffects.toneValues = defaulttoneValues;
+                FPSCameraPrismEffects.secondaryToneValues = defaultsecondaryToneValues;
+                FPSCameraPrismEffects.useLut = defaultuseLut;
+            }
+            if (levelSettings != null)
+            {
+                levelSettings.ZeroLevel = defaultZeroLevel;
+                levelSettings.SkyColor = defaultSkyColor;
+                levelSettings.EquatorColor = defaultEquatorColor;
+                levelSettings.GroundColor = defaultGroundColor;
+                levelSettings.NightVisionSkyColor = defaultNightVisionSkyColor;
+                levelSettings.NightVisionEquatorColor = defaultNightVisionEquatorColor;
+                levelSettings.NightVisionGroundColor = defaultNightVisionGroundColor;
+            }
+            foreach (var BloomAndFlares in FPSCameraBloomAndFlares)
+            {
+                BloomAndFlares.Key.bloomIntensity = BloomAndFlares.Value;
+            }
+            if (Weather != null && weatherController != null && weatherController.TimeOfDayController != null)
+            {
+                weatherController.TimeOfDayController.LightColor.colorKeys = defaultGradientColorKeys;
+            }
+            if (FPSCameraCC_Vintage != null)
+            {
+                FPSCameraCC_Vintage.SetEnabledUniversal(defaultFPSCameraCC_Vintage);
+            }
+            if (FPSCameraCC_Sharpen != null)
+            {
+                FPSCameraCC_Sharpen.SetEnabledUniversal(defaultFPSCameraSharpen);
+                FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
+                FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
+                FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
+            }
+            if (FPSCameraCustomGlobalFog != null)
+            {
+                FPSCameraCustomGlobalFog.SetEnabledUniversal(defaultFPSCameraCustomGlobalFog);
+                FPSCameraCustomGlobalFog.FuncStart = 1f;
+                FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
+            }
+            if (FPSCameraGlobalFog != null)
+            {
+                FPSCameraGlobalFog.SetEnabledUniversal(defaultFPSCameraGlobalFog);
+            }
+            if (FPSCameraColorCorrectionCurves != null)
+            {
+                FPSCameraColorCorrectionCurves.SetEnabledUniversal(defaultFPSCameraColorCorrectionCurves);
+            }
+        }
+        private void DefaultTonemap()
+        {
+            if (FPSCameraPrismEffects != null)
+            {
+                FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
+                FPSCameraPrismEffects.toneValues = defaulttoneValues;
+                FPSCameraPrismEffects.secondaryToneValues = defaultsecondaryToneValues;
+                FPSCameraPrismEffects.toneValues += new Vector3(0f, (AmandsGraphicsPlugin.Brightness.Value - 0.5f), 0f);
+            }
+        }
+        private void ACESTonemap()
+        {
+            if (FPSCameraPrismEffects != null)
+            {
+                FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
+                switch (scene)
+                {
+                    case "Laboratory_Scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsACESS.Value;
+                        break;
+                    case "custom_Light":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsACESS.Value;
+                        break;
+                    case "Factory_Day":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryACESS.Value;
+                        break;
+                    case "Factory_Night":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightACESS.Value;
+                        break;
+                    case "Lighthouse_Abadonned_pier":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseACESS.Value;
+                        break;
+                    case "Shopping_Mall_Terrain":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeACESS.Value;
+                        break;
+                    case "woods_combined":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsACESS.Value;
+                        break;
+                    case "Reserve_Base_DesignStuff":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveACESS.Value;
+                        break;
+                    case "shoreline_scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ShorelineACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ShorelineACESS.Value;
+                        break;
+                    default:
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.HideoutACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.HideoutACESS.Value;
+                        break;
+                }
+                FPSCameraPrismEffects.toneValues += new Vector3(0f, (AmandsGraphicsPlugin.Brightness.Value - 0.5f) * 4f, 0f);
+            }
+        }
+        private void FilmicTonemap()
+        {
+            if (FPSCameraPrismEffects != null)
+            {
+                FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
+                switch (scene)
+                {
+                    case "Laboratory_Scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsFilmicS.Value;
+                        break;
+                    case "custom_Light":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsFilmicS.Value;
+                        break;
+                    case "Factory_Day":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryFilmicS.Value;
+                        break;
+                    case "Factory_Night":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightFilmicS.Value;
+                        break;
+                    case "Lighthouse_Abadonned_pier":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseFilmicS.Value;
+                        break;
+                    case "Shopping_Mall_Terrain":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeFilmicS.Value;
+                        break;
+                    case "woods_combined":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsFilmicS.Value;
+                        break;
+                    case "Reserve_Base_DesignStuff":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveFilmicS.Value;
+                        break;
+                    case "shoreline_scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ShorelineFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ShorelineFilmicS.Value;
+                        break;
+                    default:
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.HideoutFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.HideoutFilmicS.Value;
+                        break;
+                }
+                FPSCameraPrismEffects.toneValues += new Vector3(0f, (AmandsGraphicsPlugin.Brightness.Value - 0.5f), 0f);
+            }
+        }
+        private void PerMapTonemap()
+        {
+            if (FPSCameraPrismEffects != null)
+            {
+                ETonemap tonemap = ETonemap.ACES;
+                switch (scene)
+                {
+                    case "Laboratory_Scripts":
+                        tonemap = AmandsGraphicsPlugin.LabsTonemap.Value;
+                        break;
+                    case "custom_Light":
+                        tonemap = AmandsGraphicsPlugin.CustomsTonemap.Value;
+                        break;
+                    case "Factory_Day":
+                        tonemap = AmandsGraphicsPlugin.FactoryTonemap.Value;
+                        break;
+                    case "Factory_Night":
+                        tonemap = AmandsGraphicsPlugin.FactoryNightTonemap.Value;
+                        break;
+                    case "Lighthouse_Abadonned_pier":
+                        tonemap = AmandsGraphicsPlugin.LighthouseTonemap.Value;
+                        break;
+                    case "Shopping_Mall_Terrain":
+                        tonemap = AmandsGraphicsPlugin.InterchangeTonemap.Value;
+                        break;
+                    case "woods_combined":
+                        tonemap = AmandsGraphicsPlugin.WoodsTonemap.Value;
+                        break;
+                    case "Reserve_Base_DesignStuff":
+                        tonemap = AmandsGraphicsPlugin.ReserveTonemap.Value;
+                        break;
+                    case "shoreline_scripts":
+                        tonemap = AmandsGraphicsPlugin.ShorelineTonemap.Value;
+                        break;
+                    default:
+                        tonemap = AmandsGraphicsPlugin.HideoutTonemap.Value;
+                        break;
+                }
+                switch (tonemap)
+                {
+                    case ETonemap.Default:
+                        DefaultTonemap();
+                        break;
+                    case ETonemap.ACES:
+                        ACESTonemap();
+                        break;
+                    case ETonemap.Filmic:
+                        FilmicTonemap();
+                        break;
+                }
+            }
+        }
+        private void SettingsUpdated(object sender, EventArgs e)
+        {
+            if (GraphicsMode)
+            {
+                UpdateAmandsGraphics();
+            }
+        }
+    }
+    public enum ETonemap
+    {
+        Default,
+        ACES,
+        Filmic
+    }
+    public enum EGlobalTonemap
+    {
+        Default,
+        ACES,
+        Filmic,
+        PerMap
+    }
+    public enum EDebugMode
+    {
+        HBAO,
+        DefaultToACES,
+        DefaultToFilmic,
+        ACESToFilmic,
+        useLut,
+        CC_Vintage,
+        CC_Sharpen,
+        CustomGlobalFog,
+        GlobalFog,
+        ColorCorrectionCurves,
+        LightsUseLinearIntensity,
+        SunColor,
+        SkyColor,
+        NVGColorsFix
     }
 }
 
