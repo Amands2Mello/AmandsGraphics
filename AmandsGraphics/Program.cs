@@ -6,12 +6,14 @@ using BepInEx.Configuration;
 using System;
 using System.IO;
 using System.Reflection;
+using EFT;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
+using EFT.CameraControl;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.1.0")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.1.1")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -35,6 +37,7 @@ namespace AmandsGraphics
         public static ConfigEntry<KernelSize> DepthOfFieldKernelSize { get; set; }
         public static ConfigEntry<float> DepthOfFieldSpeed { get; set; }
         public static ConfigEntry<float> DepthOfFieldFOV { get; set; }
+        public static ConfigEntry<float> DepthOfFieldOpticFOV { get; set; }
 
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
@@ -160,7 +163,7 @@ namespace AmandsGraphics
             MotionBlurSampleCount = Config.Bind<int>(AmandsCinematic, "MotionBlur SampleCount", 20, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 240, IsAdvanced = true }));
             MotionBlurShutterAngle = Config.Bind<float>(AmandsCinematic, "MotionBlur ShutterAngle", 360f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 230, IsAdvanced = true }));
             HBAO = Config.Bind<bool>(AmandsCinematic, "HBAO", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 220, IsAdvanced = true }));
-            HBAOIntensity = Config.Bind<float>(AmandsCinematic, "HBAO Intensity", 1.25f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 210, IsAdvanced = true }));
+            HBAOIntensity = Config.Bind<float>(AmandsCinematic, "HBAO Intensity", 1.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 210, IsAdvanced = true }));
             HBAOSaturation = Config.Bind<float>(AmandsCinematic, "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 200, IsAdvanced = true }));
             HBAOAlbedoMultiplier = Config.Bind<float>(AmandsCinematic, "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 190, IsAdvanced = true }));
             DepthOfField = Config.Bind<bool>(AmandsCinematic, "DepthOfField", false, new ConfigDescription("EXPERIMENTAL Use FOV 51-75", null, new ConfigurationManagerAttributes { Order = 180, IsAdvanced = true }));
@@ -171,6 +174,7 @@ namespace AmandsGraphics
             DepthOfFieldKernelSize = Config.Bind<KernelSize>(AmandsCinematic, "DepthOfField Kernel Size", KernelSize.VeryLarge, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             DepthOfFieldSpeed = Config.Bind<float>(AmandsCinematic, "DepthOfField Speed", 0.1f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 1f), new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             DepthOfFieldFOV = Config.Bind<float>(AmandsCinematic, "DepthOfField FOV", 36f, new ConfigDescription("Activates DepthOfField when fov zoom is lower than this value. Recommended values for different FOVs: FOV 51 = 36, FOV 75 = 60", new AcceptableValueRange<float>(36f, 60f), new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            DepthOfFieldOpticFOV = Config.Bind<float>(AmandsCinematic, "DepthOfField OpticFOV", 25f, new ConfigDescription("Activates DepthOfField when optic fov is lower than this value.", new AcceptableValueRange<float>(1f, 50f), new ConfigurationManagerAttributes { Order = 105, IsAdvanced = true }));
 
             Brightness = Config.Bind<float>(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f,1f), new ConfigurationManagerAttributes { Order = 340 }));
             Tonemap = Config.Bind<EGlobalTonemap>(AmandsFeatures, "Tonemap", EGlobalTonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
@@ -268,6 +272,8 @@ namespace AmandsGraphics
 
             new AmandsGraphicsNVGPatch().Enable();
             new AmandsGraphicsHBAOPatch().Enable();
+            new AmandsGraphicsPrismEffectsPatch().Enable();
+            new AmandsGraphicsOpticPatch().Enable();
         }
 
         public static void SaveAmandsGraphicsPreset()
@@ -661,6 +667,33 @@ namespace AmandsGraphics
             AmandsGraphicsClass.defaultFPSCameraHBAOColorBleedingSettings = __instance.colorBleedingSettings;
             AmandsGraphicsClass.FPSCameraHBAOAOSettings = __instance.aoSettings;
             AmandsGraphicsClass.FPSCameraHBAOColorBleedingSettings = __instance.colorBleedingSettings;
+        }
+    }
+    public class AmandsGraphicsPrismEffectsPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(PrismEffects).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref PrismEffects __instance)
+        {
+            if (__instance.gameObject.name == "FPS Camera") AmandsGraphicsPlugin.AmandsGraphicsClassComponent.ActivateAmandsGraphics(__instance.gameObject, __instance);
+        }
+    }
+    public class AmandsGraphicsOpticPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(OpticComponentUpdater).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref OpticComponentUpdater __instance)
+        {
+            if (__instance.gameObject.name == "BaseOpticCamera(Clone)")
+            {
+                AmandsGraphicsClass.BaseOpticCameraCamera = __instance.GetComponent<Camera>();
+            }
         }
     }
 }
