@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using BSG.CameraEffects;
 using HarmonyLib;
 using UnityEngine.Rendering;
+using EFT;
 
 namespace AmandsGraphics
 {
@@ -16,9 +17,10 @@ namespace AmandsGraphics
         private static GameObject FPSCamera;
         private static Camera FPSCameraCamera;
         private static float FPSCameraCameraFOV;
-        private static GameObject BaseOpticCamera;
+        public static Camera BaseOpticCameraCamera;
         private static PostProcessVolume FPSCameraPostProcessVolume;
         private static PostProcessLayer FPSCameraPostProcessLayer;
+        private static LocalPlayer localPlayer;
         private static UnityEngine.Rendering.PostProcessing.MotionBlur FPSCameraMotionBlur;
         private static UnityEngine.Rendering.PostProcessing.DepthOfField FPSCameraDepthOfField;
         private static float DepthOfFieldFocalLength;
@@ -26,12 +28,11 @@ namespace AmandsGraphics
         private static GameObject Weather;
         private static WeatherController weatherController;
         private static CC_Sharpen FPSCameraCC_Sharpen;
-        //private static BloomAndFlares[] FPSCameraBloomAndFlares;
         private static Dictionary<BloomAndFlares, float> FPSCameraBloomAndFlares = new Dictionary<BloomAndFlares, float>();
         private static PrismEffects FPSCameraPrismEffects;
         private static CC_Vintage FPSCameraCC_Vintage;
         private static CustomGlobalFog FPSCameraCustomGlobalFog;
-        private static Component FPSCameraGlobalFog;
+        private static Behaviour FPSCameraGlobalFog;
         private static ColorCorrectionCurves FPSCameraColorCorrectionCurves;
         private static NightVision FPSCameraNightVision;
         private static HBAO FPSCameraHBAO;
@@ -69,7 +70,6 @@ namespace AmandsGraphics
         public static bool NVG = false;
 
         public bool GraphicsMode = false;
-        private int UpdateInterval;
         public void Start()
         {
             sceneLevelSettings.Add("Laboratory_Scripts", "---Laboratory_levelsettings---");
@@ -272,126 +272,9 @@ namespace AmandsGraphics
                 }
                 UpdateAmandsGraphics();
             }
-            UpdateInterval += 1;
-            if (UpdateInterval > 200)
+            if (AmandsGraphicsPlugin.DepthOfField.Value && FPSCameraDepthOfField != null && FPSCameraCamera != null && localPlayer != null)
             {
-                UpdateInterval = 0;
-                if (FPSCamera == null)
-                {
-                    FPSCamera = GameObject.Find("FPS Camera");
-                    if (FPSCamera != null)
-                    {
-                        defaultLightsUseLinearIntensity = GraphicsSettings.lightsUseLinearIntensity;
-                        if (FPSCameraCamera == null)
-                        {
-                            FPSCameraCamera = FPSCamera.GetComponent<Camera>();
-                        }
-                        FPSCameraPostProcessVolume = FPSCamera.GetComponent<PostProcessVolume>();
-                        if (FPSCameraPostProcessVolume != null)
-                        {
-                            FPSCameraPostProcessVolume.profile.TryGetSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>(out FPSCameraMotionBlur);
-                            if (FPSCameraMotionBlur == null)
-                            {
-                                FPSCameraPostProcessVolume.profile.AddSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>();
-                                FPSCameraPostProcessVolume.profile.TryGetSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>(out FPSCameraMotionBlur);
-                            }
-                        }
-                        FPSCameraPostProcessLayer = FPSCamera.GetComponent<PostProcessLayer>();
-                        if (FPSCameraPostProcessLayer != null)
-                        {
-                            FPSCameraDepthOfField = Traverse.Create(FPSCameraPostProcessLayer).Field("m_Bundles").GetValue<Dictionary<Type, PostProcessBundle>>()[typeof(UnityEngine.Rendering.PostProcessing.DepthOfField)].settings as UnityEngine.Rendering.PostProcessing.DepthOfField;
-                            DepthOfFieldFocalLength = AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value;
-                        }
-                        FPSCameraCC_Sharpen = FPSCamera.GetComponent<CC_Sharpen>();
-                        if (FPSCameraCC_Sharpen != null)
-                        {
-                            defaultFPSCameraSharpen = FPSCameraCC_Sharpen.IsEnabledUniversal();
-                            defaultrampOffsetR = FPSCameraCC_Sharpen.rampOffsetR;
-                            defaultrampOffsetG = FPSCameraCC_Sharpen.rampOffsetG;
-                            defaultrampOffsetB = FPSCameraCC_Sharpen.rampOffsetB;
-                        }
-                        FPSCameraPrismEffects = FPSCamera.GetComponent<PrismEffects>();
-                        if (FPSCameraPrismEffects != null)
-                        {
-                            defaulttoneValues = FPSCameraPrismEffects.toneValues;
-                            defaultsecondaryToneValues = FPSCameraPrismEffects.secondaryToneValues;
-                            defaultuseLut = FPSCameraPrismEffects.useLut;
-                        }
-                        FPSCameraBloomAndFlares.Clear();
-                        foreach (BloomAndFlares bloomAndFlares in FPSCamera.GetComponents<BloomAndFlares>())
-                        {
-                            FPSCameraBloomAndFlares.Add(bloomAndFlares, bloomAndFlares.bloomIntensity);
-                        }
-                        scene = SceneManager.GetActiveScene().name;
-                        if (!sceneLevelSettings.ContainsKey(scene)) scene = "default";
-                        levelSettings = GameObject.Find(sceneLevelSettings[scene]).GetComponent<LevelSettings>();
-                        if (levelSettings != null)
-                        {
-                            defaultZeroLevel = levelSettings.ZeroLevel;
-                            defaultSkyColor = levelSettings.SkyColor;
-                            defaultEquatorColor = levelSettings.EquatorColor;
-                            defaultGroundColor = levelSettings.GroundColor;
-                            defaultNightVisionSkyColor = levelSettings.NightVisionSkyColor;
-                            defaultNightVisionEquatorColor = levelSettings.NightVisionEquatorColor;
-                            defaultNightVisionGroundColor = levelSettings.NightVisionGroundColor;
-                        }
-                        FPSCameraCC_Vintage = FPSCamera.GetComponent<CC_Vintage>();
-                        if (FPSCameraCC_Vintage != null)
-                        {
-                            defaultFPSCameraCC_Vintage = FPSCameraCC_Vintage.IsEnabledUniversal();
-                        }
-                        FPSCameraCustomGlobalFog = FPSCamera.GetComponent<CustomGlobalFog>();
-                        if (FPSCameraCustomGlobalFog != null)
-                        {
-                            defaultFPSCameraCustomGlobalFog = FPSCameraCustomGlobalFog.IsEnabledUniversal();
-                        }
-                        foreach (Component component in FPSCamera.GetComponents<Component>())
-                        {
-                            if (component.ToString() == "FPS Camera (UnityStandardAssets.ImageEffects.GlobalFog)")
-                            {
-                                FPSCameraGlobalFog = component;
-                                defaultFPSCameraGlobalFog = FPSCameraGlobalFog.IsEnabledUniversal();
-                                break;
-                            }
-                        }
-                        FPSCameraColorCorrectionCurves = FPSCamera.GetComponent<ColorCorrectionCurves>();
-                        if (FPSCameraColorCorrectionCurves != null)
-                        {
-                            defaultFPSCameraColorCorrectionCurves = FPSCameraColorCorrectionCurves.IsEnabledUniversal();
-                        }
-                        Weather = GameObject.Find("Weather");
-                        if (Weather != null)
-                        {
-                            weatherController = Weather.GetComponent<WeatherController>();
-                            if (weatherController != null && weatherController.TimeOfDayController != null)
-                            {
-                                defaultGradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;
-                            }
-                        }
-                        FPSCameraNightVision = FPSCamera.GetComponent<NightVision>();
-                        if (FPSCameraNightVision != null)
-                        {
-                            NVG = FPSCameraNightVision.On;
-                        }
-                        FPSCameraHBAO = FPSCamera.GetComponent<HBAO>();
-                        if (FPSCameraHBAO != null)
-                        {
-                            defaultFPSCameraHBAOAOSettings = FPSCameraHBAO.aoSettings;
-                            defaultFPSCameraHBAOColorBleedingSettings = FPSCameraHBAO.colorBleedingSettings;
-                            FPSCameraHBAOAOSettings = FPSCameraHBAO.aoSettings;
-                            FPSCameraHBAOColorBleedingSettings = FPSCameraHBAO.colorBleedingSettings;
-                        }
-                        GraphicsMode = true;
-                        UpdateAmandsGraphics();
-                    }
-                }
-                if (BaseOpticCamera == null)
-                {
-                    BaseOpticCamera = GameObject.Find("BaseOpticCamera(Clone)");
-                }
-            }
-            if (AmandsGraphicsPlugin.DepthOfField.Value && FPSCameraDepthOfField != null && FPSCameraCamera != null)
-            {
+
                 if (FPSCameraCameraFOV >= FPSCameraCamera.fieldOfView)
                 {
                     DepthOfFieldMode = FPSCameraCamera.fieldOfView < (AmandsGraphicsPlugin.DepthOfFieldFOV.Value - 0.01f);
@@ -400,10 +283,127 @@ namespace AmandsGraphics
                 {
                     DepthOfFieldMode = FPSCameraCamera.fieldOfView < 35.01f;
                 }
+                if (BaseOpticCameraCamera != null && BaseOpticCameraCamera.fieldOfView > AmandsGraphicsPlugin.DepthOfFieldOpticFOV.Value) DepthOfFieldMode = false;
                 FPSCameraCameraFOV = FPSCameraCamera.fieldOfView;
-                DepthOfFieldFocalLength += ((((BaseOpticCamera != null ? BaseOpticCamera.activeSelf : true) && DepthOfFieldMode) ? AmandsGraphicsPlugin.DepthOfFieldFocalLength.Value : AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value) - DepthOfFieldFocalLength) * AmandsGraphicsPlugin.DepthOfFieldSpeed.Value; //  FOV 35.99f
+                DepthOfFieldFocalLength += (((localPlayer.HandsController != null ? localPlayer.HandsController.IsAiming && DepthOfFieldMode : false) ? AmandsGraphicsPlugin.DepthOfFieldFocalLength.Value : AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value) - DepthOfFieldFocalLength) * AmandsGraphicsPlugin.DepthOfFieldSpeed.Value; //  FOV 35.99f
                 FPSCameraDepthOfField.focalLength.value = DepthOfFieldFocalLength;
                 FPSCameraDepthOfField.enabled.value = DepthOfFieldFocalLength > (AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value + 0.1f);
+            }
+        }
+        public void ActivateAmandsGraphics(GameObject fpscamera, PrismEffects prismeffects)
+        {
+            if (FPSCamera == null)
+            {
+                FPSCamera = fpscamera;
+                if (FPSCamera != null)
+                {
+                    defaultLightsUseLinearIntensity = GraphicsSettings.lightsUseLinearIntensity;
+                    if (FPSCameraCamera == null)
+                    {
+                        FPSCameraCamera = FPSCamera.GetComponent<Camera>();
+                    }
+                    FPSCameraPostProcessVolume = FPSCamera.GetComponent<PostProcessVolume>();
+                    if (FPSCameraPostProcessVolume != null)
+                    {
+                        FPSCameraPostProcessVolume.profile.TryGetSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>(out FPSCameraMotionBlur);
+                        if (FPSCameraMotionBlur == null)
+                        {
+                            FPSCameraPostProcessVolume.profile.AddSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>();
+                            FPSCameraPostProcessVolume.profile.TryGetSettings<UnityEngine.Rendering.PostProcessing.MotionBlur>(out FPSCameraMotionBlur);
+                        }
+                    }
+                    FPSCameraPostProcessLayer = FPSCamera.GetComponent<PostProcessLayer>();
+                    if (FPSCameraPostProcessLayer != null)
+                    {
+                        FPSCameraDepthOfField = Traverse.Create(FPSCameraPostProcessLayer).Field("m_Bundles").GetValue<Dictionary<Type, PostProcessBundle>>()[typeof(UnityEngine.Rendering.PostProcessing.DepthOfField)].settings as UnityEngine.Rendering.PostProcessing.DepthOfField;
+                        DepthOfFieldFocalLength = AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value;
+                    }
+                    FPSCameraCC_Sharpen = FPSCamera.GetComponent<CC_Sharpen>();
+                    if (FPSCameraCC_Sharpen != null)
+                    {
+                        defaultFPSCameraSharpen = FPSCameraCC_Sharpen.enabled;
+                        defaultrampOffsetR = FPSCameraCC_Sharpen.rampOffsetR;
+                        defaultrampOffsetG = FPSCameraCC_Sharpen.rampOffsetG;
+                        defaultrampOffsetB = FPSCameraCC_Sharpen.rampOffsetB;
+                    }
+                    FPSCameraPrismEffects = prismeffects;
+                    if (FPSCameraPrismEffects != null)
+                    {
+                        defaulttoneValues = FPSCameraPrismEffects.toneValues;
+                        defaultsecondaryToneValues = FPSCameraPrismEffects.secondaryToneValues;
+                        defaultuseLut = FPSCameraPrismEffects.useLut;
+                    }
+                    FPSCameraBloomAndFlares.Clear();
+                    foreach (BloomAndFlares bloomAndFlares in FPSCamera.GetComponents<BloomAndFlares>())
+                    {
+                        FPSCameraBloomAndFlares.Add(bloomAndFlares, bloomAndFlares.bloomIntensity);
+                    }
+                    scene = SceneManager.GetActiveScene().name;
+                    if (!sceneLevelSettings.ContainsKey(scene)) scene = "default";
+                    levelSettings = GameObject.Find(sceneLevelSettings[scene]).GetComponent<LevelSettings>();
+                    if (levelSettings != null)
+                    {
+                        defaultZeroLevel = levelSettings.ZeroLevel;
+                        defaultSkyColor = levelSettings.SkyColor;
+                        defaultEquatorColor = levelSettings.EquatorColor;
+                        defaultGroundColor = levelSettings.GroundColor;
+                        defaultNightVisionSkyColor = levelSettings.NightVisionSkyColor;
+                        defaultNightVisionEquatorColor = levelSettings.NightVisionEquatorColor;
+                        defaultNightVisionGroundColor = levelSettings.NightVisionGroundColor;
+                    }
+                    FPSCameraCC_Vintage = FPSCamera.GetComponent<CC_Vintage>();
+                    if (FPSCameraCC_Vintage != null)
+                    {
+                        defaultFPSCameraCC_Vintage = FPSCameraCC_Vintage.enabled;
+                    }
+                    FPSCameraCustomGlobalFog = FPSCamera.GetComponent<CustomGlobalFog>();
+                    if (FPSCameraCustomGlobalFog != null)
+                    {
+                        defaultFPSCameraCustomGlobalFog = FPSCameraCustomGlobalFog.enabled;
+                    }
+                    foreach (Component component in FPSCamera.GetComponents<Component>())
+                    {
+                        if (component.ToString() == "FPS Camera (UnityStandardAssets.ImageEffects.GlobalFog)")
+                        {
+                            FPSCameraGlobalFog = component as Behaviour;
+                            defaultFPSCameraGlobalFog = FPSCameraGlobalFog.enabled;
+                            break;
+                        }
+                    }
+                    FPSCameraColorCorrectionCurves = FPSCamera.GetComponent<ColorCorrectionCurves>();
+                    if (FPSCameraColorCorrectionCurves != null)
+                    {
+                        defaultFPSCameraColorCorrectionCurves = FPSCameraColorCorrectionCurves.enabled;
+                    }
+                    Weather = GameObject.Find("Weather");
+                    if (Weather != null)
+                    {
+                        weatherController = Weather.GetComponent<WeatherController>();
+                        if (weatherController != null && weatherController.TimeOfDayController != null)
+                        {
+                            defaultGradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;
+                        }
+                    }
+                    FPSCameraNightVision = FPSCamera.GetComponent<NightVision>();
+                    if (FPSCameraNightVision != null)
+                    {
+                        NVG = FPSCameraNightVision.On;
+                    }
+                    FPSCameraHBAO = FPSCamera.GetComponent<HBAO>();
+                    if (FPSCameraHBAO != null)
+                    {
+                        defaultFPSCameraHBAOAOSettings = FPSCameraHBAO.aoSettings;
+                        defaultFPSCameraHBAOColorBleedingSettings = FPSCameraHBAO.colorBleedingSettings;
+                        FPSCameraHBAOAOSettings = FPSCameraHBAO.aoSettings;
+                        FPSCameraHBAOColorBleedingSettings = FPSCameraHBAO.colorBleedingSettings;
+                    }
+                    GraphicsMode = true;
+                    UpdateAmandsGraphics();
+                }
+            }
+            if (localPlayer == null)
+            {
+                localPlayer = FindObjectOfType<LocalPlayer>();
             }
         }
         public void UpdateAmandsGraphics()
@@ -564,20 +564,20 @@ namespace AmandsGraphics
             }
             if (FPSCameraCC_Vintage != null)
             {
-                FPSCameraCC_Vintage.SetEnabledUniversal(AmandsGraphicsPlugin.CC_Vintage.Value);
+                FPSCameraCC_Vintage.enabled = AmandsGraphicsPlugin.CC_Vintage.Value;
             }
             if (FPSCameraCC_Sharpen != null)
             {
                 if (AmandsGraphicsPlugin.CC_Sharpen.Value)
                 {
-                    FPSCameraCC_Sharpen.SetEnabledUniversal(defaultFPSCameraSharpen);
+                    FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
                     FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
                     FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
                     FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
                 }
                 else
                 {
-                    FPSCameraCC_Sharpen.SetEnabledUniversal(true);
+                    FPSCameraCC_Sharpen.enabled = true;
                     FPSCameraCC_Sharpen.rampOffsetR = 0f;
                     FPSCameraCC_Sharpen.rampOffsetG = 0f;
                     FPSCameraCC_Sharpen.rampOffsetB = 0f;
@@ -587,24 +587,24 @@ namespace AmandsGraphics
             {
                 if (AmandsGraphicsPlugin.CustomGlobalFog.Value)
                 {
-                    FPSCameraCustomGlobalFog.SetEnabledUniversal(defaultFPSCameraCustomGlobalFog);
+                    FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
                     FPSCameraCustomGlobalFog.FuncStart = 1f;
                     FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
                 }
                 else
                 {
-                    FPSCameraCustomGlobalFog.SetEnabledUniversal((scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog);
+                    FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
                     FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
                     FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
                 }
             }
             if (FPSCameraGlobalFog != null)
             {
-                FPSCameraGlobalFog.SetEnabledUniversal(AmandsGraphicsPlugin.GlobalFog.Value);
+                FPSCameraGlobalFog.enabled = AmandsGraphicsPlugin.GlobalFog.Value;
             }
             if (FPSCameraColorCorrectionCurves != null)
             {
-                FPSCameraColorCorrectionCurves.SetEnabledUniversal(AmandsGraphicsPlugin.ColorCorrectionCurves.Value);
+                FPSCameraColorCorrectionCurves.enabled = AmandsGraphicsPlugin.ColorCorrectionCurves.Value;
             }
             // NVG FIX
             if (AmandsGraphicsPlugin.NVGColorsFix.Value && NVG)
@@ -619,18 +619,18 @@ namespace AmandsGraphics
                 }
                 if (FPSCameraCC_Vintage != null)
                 {
-                    FPSCameraCC_Vintage.SetEnabledUniversal(defaultFPSCameraCC_Vintage);
+                    FPSCameraCC_Vintage.enabled = defaultFPSCameraCC_Vintage;
                 }
                 if (FPSCameraCC_Sharpen != null)
                 {
-                    FPSCameraCC_Sharpen.SetEnabledUniversal(defaultFPSCameraSharpen);
+                    FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
                     FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
                     FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
                     FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
                 }
                 if (FPSCameraColorCorrectionCurves != null)
                 {
-                    FPSCameraColorCorrectionCurves.SetEnabledUniversal(defaultFPSCameraColorCorrectionCurves);
+                    FPSCameraColorCorrectionCurves.enabled = defaultFPSCameraColorCorrectionCurves;
                 }
             }
         }
@@ -669,28 +669,28 @@ namespace AmandsGraphics
             }
             if (FPSCameraCC_Vintage != null)
             {
-                FPSCameraCC_Vintage.SetEnabledUniversal(defaultFPSCameraCC_Vintage);
+                FPSCameraCC_Vintage.enabled = defaultFPSCameraCC_Vintage;
             }
             if (FPSCameraCC_Sharpen != null)
             {
-                FPSCameraCC_Sharpen.SetEnabledUniversal(defaultFPSCameraSharpen);
+                FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
                 FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
                 FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
                 FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
             }
             if (FPSCameraCustomGlobalFog != null)
             {
-                FPSCameraCustomGlobalFog.SetEnabledUniversal(defaultFPSCameraCustomGlobalFog);
+                FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
                 FPSCameraCustomGlobalFog.FuncStart = 1f;
                 FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
             }
             if (FPSCameraGlobalFog != null)
             {
-                FPSCameraGlobalFog.SetEnabledUniversal(defaultFPSCameraGlobalFog);
+                FPSCameraGlobalFog.enabled = defaultFPSCameraGlobalFog;
             }
             if (FPSCameraColorCorrectionCurves != null)
             {
-                FPSCameraColorCorrectionCurves.SetEnabledUniversal(defaultFPSCameraColorCorrectionCurves);
+                FPSCameraColorCorrectionCurves.enabled = defaultFPSCameraColorCorrectionCurves;
             }
         }
         private void DefaultTonemap()
