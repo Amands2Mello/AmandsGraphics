@@ -72,6 +72,7 @@ namespace AmandsGraphics
         public bool GraphicsMode = false;
         public void Start()
         {
+            sceneLevelSettings.Add("City_Scripts", "---City_ levelsettings ---");
             sceneLevelSettings.Add("Laboratory_Scripts", "---Laboratory_levelsettings---");
             sceneLevelSettings.Add("custom_Light", "---Custom_levelsettings---");
             sceneLevelSettings.Add("Factory_Day", "---FactoryDay_levelsettings---");
@@ -111,6 +112,7 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.SkyColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.NVGColorsFix.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.StreetsFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LighthouseFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.InterchangeFogLevel.SettingChanged += SettingsUpdated;
@@ -118,6 +120,7 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.ReserveFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.ShorelineFogLevel.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.StreetsTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.FactoryTonemap.SettingChanged += SettingsUpdated;
@@ -129,6 +132,8 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.ShorelineTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HideoutTonemap.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.StreetsACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.StreetsACESS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsACES.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsACESS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsACES.SettingChanged += SettingsUpdated;
@@ -150,6 +155,8 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.HideoutACES.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HideoutACESS.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.StreetsFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.StreetsFilmicS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsFilmic.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsFilmicS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsFilmic.SettingChanged += SettingsUpdated;
@@ -326,7 +333,10 @@ namespace AmandsGraphics
                         defaultrampOffsetG = FPSCameraCC_Sharpen.rampOffsetG;
                         defaultrampOffsetB = FPSCameraCC_Sharpen.rampOffsetB;
                     }
-                    FPSCameraPrismEffects = prismeffects;
+                    if (prismeffects != null)
+                    {
+                        FPSCameraPrismEffects = prismeffects;
+                    }
                     if (FPSCameraPrismEffects != null)
                     {
                         defaulttoneValues = FPSCameraPrismEffects.toneValues;
@@ -422,6 +432,26 @@ namespace AmandsGraphics
                 FPSCameraDepthOfField.aperture.value = AmandsGraphicsPlugin.DepthOfFieldAperture.Value;
                 FPSCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.DepthOfFieldKernelSize.Value;
             }
+            if (NVG)
+            {
+                ResetGraphics();
+                if (FPSCameraCustomGlobalFog != null)
+                {
+                    if (AmandsGraphicsPlugin.CustomGlobalFog.Value)
+                    {
+                        FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
+                        FPSCameraCustomGlobalFog.FuncStart = 1f;
+                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
+                    }
+                    else
+                    {
+                        FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
+                        FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
+                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
+                    }
+                }
+                return;
+            }
             if (FPSCameraHBAO != null)
             {
                 if (AmandsGraphicsPlugin.HBAO.Value)
@@ -485,7 +515,11 @@ namespace AmandsGraphics
                 {
                     switch (scene)
                     {
+                        case "City_Scripts":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.StreetsFogLevel.Value;
+                            break;
                         case "Laboratory_Scripts":
+                            break;
                         case "custom_Light":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
                             break;
@@ -534,7 +568,11 @@ namespace AmandsGraphics
                 {
                     switch (scene)
                     {
+                        case "City_Scripts":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.StreetsFogLevel.Value;
+                            break;
                         case "Laboratory_Scripts":
+                            break;
                         case "custom_Light":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
                             break;
@@ -607,32 +645,32 @@ namespace AmandsGraphics
                 FPSCameraColorCorrectionCurves.enabled = AmandsGraphicsPlugin.ColorCorrectionCurves.Value;
             }
             // NVG FIX
-            if (AmandsGraphicsPlugin.NVGColorsFix.Value && NVG)
-            {
-                if (FPSCameraPrismEffects != null)
-                {
-                    FPSCameraPrismEffects.useLut = defaultuseLut;
-                }
-                if (levelSettings != null)
-                {
-                    levelSettings.ZeroLevel = defaultZeroLevel;
-                }
-                if (FPSCameraCC_Vintage != null)
-                {
-                    FPSCameraCC_Vintage.enabled = defaultFPSCameraCC_Vintage;
-                }
-                if (FPSCameraCC_Sharpen != null)
-                {
-                    FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
-                    FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
-                    FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
-                    FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
-                }
-                if (FPSCameraColorCorrectionCurves != null)
-                {
-                    FPSCameraColorCorrectionCurves.enabled = defaultFPSCameraColorCorrectionCurves;
-                }
-            }
+            //if (AmandsGraphicsPlugin.NVGColorsFix.Value && NVG)
+            //{
+            //    if (FPSCameraPrismEffects != null)
+            //    {
+            //        FPSCameraPrismEffects.useLut = defaultuseLut;
+            //    }
+            //    if (levelSettings != null)
+            //    {
+            //        levelSettings.ZeroLevel = defaultZeroLevel;
+            //    }
+            //    if (FPSCameraCC_Vintage != null)
+            //    {
+            //        FPSCameraCC_Vintage.enabled = defaultFPSCameraCC_Vintage;
+            //    }
+            //    if (FPSCameraCC_Sharpen != null)
+            //    {
+            //        FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
+            //        FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
+            //        FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
+            //        FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
+            //    }
+            //    if (FPSCameraColorCorrectionCurves != null)
+            //    {
+            //        FPSCameraColorCorrectionCurves.enabled = defaultFPSCameraColorCorrectionCurves;
+            //    }
+            //}
         }
         private void ResetGraphics()
         {
@@ -710,6 +748,10 @@ namespace AmandsGraphics
                 FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
                 switch (scene)
                 {
+                    case "City_Scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.StreetsACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.StreetsACESS.Value;
+                        break;
                     case "Laboratory_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsACESS.Value;
@@ -761,6 +803,10 @@ namespace AmandsGraphics
                 FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
                 switch (scene)
                 {
+                    case "City_Scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.StreetsFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.StreetsFilmicS.Value;
+                        break;
                     case "Laboratory_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsFilmicS.Value;
@@ -812,6 +858,9 @@ namespace AmandsGraphics
                 ETonemap tonemap = ETonemap.ACES;
                 switch (scene)
                 {
+                    case "City_Scripts":
+                        tonemap = AmandsGraphicsPlugin.StreetsTonemap.Value;
+                        break;
                     case "Laboratory_Scripts":
                         tonemap = AmandsGraphicsPlugin.LabsTonemap.Value;
                         break;
