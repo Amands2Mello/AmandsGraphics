@@ -13,7 +13,7 @@ using EFT.CameraControl;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.1.1")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.2.0")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -57,6 +57,7 @@ namespace AmandsGraphics
         public static ConfigEntry<string> SavePreset { get; set; }
         public static ConfigEntry<string> LoadPreset { get; set; }
 
+        public static ConfigEntry<float> StreetsFogLevel { get; set; }
         public static ConfigEntry<float> CustomsFogLevel { get; set; }
         public static ConfigEntry<float> LighthouseFogLevel { get; set; }
         public static ConfigEntry<float> InterchangeFogLevel { get; set; }
@@ -64,6 +65,7 @@ namespace AmandsGraphics
         public static ConfigEntry<float> ReserveFogLevel { get; set; }
         public static ConfigEntry<float> ShorelineFogLevel { get; set; }
 
+        public static ConfigEntry<ETonemap> StreetsTonemap { get; set; }
         public static ConfigEntry<ETonemap> LabsTonemap { get; set; }
         public static ConfigEntry<ETonemap> CustomsTonemap { get; set; }
         public static ConfigEntry<ETonemap> FactoryTonemap { get; set; }
@@ -75,6 +77,8 @@ namespace AmandsGraphics
         public static ConfigEntry<ETonemap> ShorelineTonemap { get; set; }
         public static ConfigEntry<ETonemap> HideoutTonemap { get; set; }
 
+        public static ConfigEntry<Vector3> StreetsACES { get; set; }
+        public static ConfigEntry<Vector3> StreetsACESS { get; set; }
         public static ConfigEntry<Vector3> LabsACES { get; set; }
         public static ConfigEntry<Vector3> LabsACESS { get; set; }
         public static ConfigEntry<Vector3> CustomsACES { get; set; }
@@ -96,6 +100,8 @@ namespace AmandsGraphics
         public static ConfigEntry<Vector3> HideoutACES { get; set; }
         public static ConfigEntry<Vector3> HideoutACESS { get; set; }
 
+        public static ConfigEntry<Vector3> StreetsFilmic { get; set; }
+        public static ConfigEntry<Vector3> StreetsFilmicS { get; set; }
         public static ConfigEntry<Vector3> LabsFilmic { get; set; }
         public static ConfigEntry<Vector3> LabsFilmicS { get; set; }
         public static ConfigEntry<Vector3> CustomsFilmic { get; set; }
@@ -191,6 +197,13 @@ namespace AmandsGraphics
             SkyColor = Config.Bind<bool>(AmandsFeatures, "SkyColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 220 }));
             NVGColorsFix = Config.Bind<bool>(AmandsFeatures, "NVGColorsFix", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 210 }));
 
+            StreetsFogLevel = Config.Bind<float>("Streets", "Fog Level", -250.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
+            StreetsTonemap = Config.Bind<ETonemap>("Streets", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            StreetsACES = Config.Bind<Vector3>("Streets", "ACES", new Vector3(25, 0.2f, 25), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            StreetsACESS = Config.Bind<Vector3>("Streets", "ACESS", new Vector3(0, 1.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            StreetsFilmic = Config.Bind<Vector3>("Streets", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            StreetsFilmicS = Config.Bind<Vector3>("Streets", "FilmicS", new Vector3(0, 0.35f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+
             LabsTonemap = Config.Bind<ETonemap>("Labs", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             LabsACES = Config.Bind<Vector3>("Labs", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             LabsACESS = Config.Bind<Vector3>("Labs", "ACESS", new Vector3(0, 2, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
@@ -206,9 +219,9 @@ namespace AmandsGraphics
 
             FactoryTonemap = Config.Bind<ETonemap>("Factory", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
             FactoryACES = Config.Bind<Vector3>("Factory", "ACES", new Vector3(15, 1, 15), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
-            FactoryACESS = Config.Bind<Vector3>("Factory", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
+            FactoryACESS = Config.Bind<Vector3>("Factory", "ACESS", new Vector3(0, 1.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
             FactoryFilmic = Config.Bind<Vector3>("Factory", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            FactoryFilmicS = Config.Bind<Vector3>("Factory", "FilmicS", new Vector3(0, 0.22f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            FactoryFilmicS = Config.Bind<Vector3>("Factory", "FilmicS", new Vector3(0, 0.3f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             FactorySkyColor = Config.Bind<Vector4>("Factory", "SkyColor", new Vector4(0.9f, 0.8f, 0.7f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             FactoryNVSkyColor = Config.Bind<Vector4>("Factory", "NVSkyColor", new Vector4(0.9f, 0.8f, 0.7f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
@@ -300,6 +313,8 @@ namespace AmandsGraphics
                     DepthOfFieldFocalLengthOff = DepthOfFieldFocalLengthOff.Value,
                     DepthOfFieldKernelSize = DepthOfFieldKernelSize.Value,
                     DepthOfFieldSpeed = DepthOfFieldSpeed.Value,
+                    DepthOfFieldFOV = DepthOfFieldFOV.Value,
+                    DepthOfFieldOpticFOV = DepthOfFieldOpticFOV.Value,
 
                     Brightness = Brightness.Value,
                     Tonemap = Tonemap.Value,
@@ -315,7 +330,7 @@ namespace AmandsGraphics
                     SunColor = SunColor.Value,
                     SkyColor = SkyColor.Value,
                     NVGColorsFix = NVGColorsFix.Value,
-
+                    StreetsFogLevel = StreetsFogLevel.Value,
                     CustomsFogLevel = CustomsFogLevel.Value,
                     LighthouseFogLevel = LighthouseFogLevel.Value,
                     InterchangeFogLevel = InterchangeFogLevel.Value,
@@ -323,6 +338,7 @@ namespace AmandsGraphics
                     ReserveFogLevel = ReserveFogLevel.Value,
                     ShorelineFogLevel = ShorelineFogLevel.Value,
 
+                    StreetsTonemap = StreetsTonemap.Value,
                     LabsTonemap = LabsTonemap.Value,
                     CustomsTonemap = CustomsTonemap.Value,
                     FactoryTonemap = FactoryTonemap.Value,
@@ -334,6 +350,8 @@ namespace AmandsGraphics
                     ShorelineTonemap = ShorelineTonemap.Value,
                     HideoutTonemap = HideoutTonemap.Value,
 
+                    StreetsACES = StreetsACES.Value,
+                    StreetsACESS = StreetsACESS.Value,
                     LabsACES = LabsACES.Value,
                     LabsACESS = LabsACESS.Value,
                     CustomsACES = CustomsACES.Value,
@@ -355,6 +373,8 @@ namespace AmandsGraphics
                     HideoutACES = HideoutACES.Value,
                     HideoutACESS = HideoutACESS.Value,
 
+                    StreetsFilmic = StreetsFilmic.Value,
+                    StreetsFilmicS = StreetsFilmicS.Value,
                     LabsFilmic = LabsFilmic.Value,
                     LabsFilmicS = LabsFilmicS.Value,
                     CustomsFilmic = CustomsFilmic.Value,
@@ -411,6 +431,8 @@ namespace AmandsGraphics
                 DepthOfFieldFocalLengthOff.Value = preset.DepthOfFieldFocalLengthOff;
                 DepthOfFieldKernelSize.Value = preset.DepthOfFieldKernelSize;
                 DepthOfFieldSpeed.Value = preset.DepthOfFieldSpeed;
+                DepthOfFieldFOV.Value = preset.DepthOfFieldFOV;
+                DepthOfFieldOpticFOV.Value = preset.DepthOfFieldOpticFOV;
 
                 Brightness.Value = preset.Brightness;
                 Tonemap.Value = preset.Tonemap;
@@ -427,6 +449,7 @@ namespace AmandsGraphics
                 SkyColor.Value = preset.SkyColor;
                 NVGColorsFix.Value = preset.NVGColorsFix;
 
+                StreetsFogLevel.Value = preset.StreetsFogLevel;
                 CustomsFogLevel.Value = preset.CustomsFogLevel;
                 LighthouseFogLevel.Value = preset.LighthouseFogLevel;
                 InterchangeFogLevel.Value = preset.InterchangeFogLevel;
@@ -434,6 +457,7 @@ namespace AmandsGraphics
                 ReserveFogLevel.Value = preset.ReserveFogLevel;
                 ShorelineFogLevel.Value = preset.ShorelineFogLevel;
 
+                LabsTonemap.Value = preset.LabsTonemap;
                 LabsTonemap.Value = preset.LabsTonemap;
                 CustomsTonemap.Value = preset.CustomsTonemap;
                 FactoryTonemap.Value = preset.FactoryTonemap;
@@ -445,6 +469,8 @@ namespace AmandsGraphics
                 ShorelineTonemap.Value = preset.ShorelineTonemap;
                 HideoutTonemap.Value = preset.HideoutTonemap;
 
+                LabsACES.Value = preset.LabsACES;
+                LabsACESS.Value = preset.LabsACESS;
                 LabsACES.Value = preset.LabsACES;
                 LabsACESS.Value = preset.LabsACESS;
                 CustomsACES.Value = preset.CustomsACES;
@@ -466,6 +492,8 @@ namespace AmandsGraphics
                 HideoutACES.Value = preset.HideoutACES;
                 HideoutACESS.Value = preset.HideoutACESS;
 
+                LabsFilmic.Value = preset.LabsFilmic;
+                LabsFilmicS.Value = preset.LabsFilmicS;
                 LabsFilmic.Value = preset.LabsFilmic;
                 LabsFilmicS.Value = preset.LabsFilmicS;
                 CustomsFilmic.Value = preset.CustomsFilmic;
@@ -548,6 +576,8 @@ namespace AmandsGraphics
         public float DepthOfFieldFocalLengthOff { get; set; }
         public KernelSize DepthOfFieldKernelSize { get; set; }
         public float DepthOfFieldSpeed { get; set; }
+        public float DepthOfFieldFOV { get; set; }
+        public float DepthOfFieldOpticFOV { get; set; }
 
         public float Brightness { get; set; }
         public EGlobalTonemap Tonemap { get; set; }
@@ -564,6 +594,7 @@ namespace AmandsGraphics
         public bool SkyColor { get; set; }
         public bool NVGColorsFix { get; set; }
 
+        public float StreetsFogLevel { get; set; }
         public float CustomsFogLevel { get; set; }
         public float LighthouseFogLevel { get; set; }
         public float InterchangeFogLevel { get; set; }
@@ -571,6 +602,7 @@ namespace AmandsGraphics
         public float ReserveFogLevel { get; set; }
         public float ShorelineFogLevel { get; set; }
 
+        public ETonemap StreetsTonemap { get; set; }
         public ETonemap LabsTonemap { get; set; }
         public ETonemap CustomsTonemap { get; set; }
         public ETonemap FactoryTonemap { get; set; }
@@ -582,6 +614,8 @@ namespace AmandsGraphics
         public ETonemap ShorelineTonemap { get; set; }
         public ETonemap HideoutTonemap { get; set; }
 
+        public Vector3 StreetsACES { get; set; }
+        public Vector3 StreetsACESS { get; set; }
         public Vector3 LabsACES { get; set; }
         public Vector3 LabsACESS { get; set; }
         public Vector3 CustomsACES { get; set; }
@@ -603,6 +637,8 @@ namespace AmandsGraphics
         public Vector3 HideoutACES { get; set; }
         public Vector3 HideoutACESS { get; set; }
 
+        public Vector3 StreetsFilmic { get; set; }
+        public Vector3 StreetsFilmicS { get; set; }
         public Vector3 LabsFilmic { get; set; }
         public Vector3 LabsFilmicS { get; set; }
         public Vector3 CustomsFilmic { get; set; }
