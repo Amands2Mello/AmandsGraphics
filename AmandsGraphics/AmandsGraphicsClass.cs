@@ -9,22 +9,53 @@ using BSG.CameraEffects;
 using HarmonyLib;
 using UnityEngine.Rendering;
 using EFT;
+using EFT.InventoryLogic;
+using System.Reflection;
+using EFT.UI;
 
 namespace AmandsGraphics
 {
     public class AmandsGraphicsClass : MonoBehaviour
     {
+        private static LocalPlayer localPlayer;
         private static GameObject FPSCamera;
         private static Camera FPSCameraCamera;
-        private static float FPSCameraCameraFOV;
-        public static Camera BaseOpticCameraCamera;
         private static PostProcessVolume FPSCameraPostProcessVolume;
         private static PostProcessLayer FPSCameraPostProcessLayer;
-        private static LocalPlayer localPlayer;
         private static UnityEngine.Rendering.PostProcessing.MotionBlur FPSCameraMotionBlur;
         private static UnityEngine.Rendering.PostProcessing.DepthOfField FPSCameraDepthOfField;
-        private static float DepthOfFieldFocalLength;
-        private static bool DepthOfFieldMode;
+        private static UnityStandardAssets.ImageEffects.DepthOfField FPSCameraWeaponDepthOfField;
+        //public static OpticSight opticSight;
+        public static SightComponent sightComponent;
+        public static Transform backLens;
+        private static bool DepthOfFieldEnabled = false;
+        private static float DepthOfFieldAnimation = 0f;
+        private static float DepthOfFieldFocusDistance = 0f;
+        private static bool isLookingEnabled = false;
+        private static bool WeaponDepthOfFieldEnabled = false;
+        private static EWeaponDepthOfFieldState weaponDepthOfFieldState;
+        private static float WeaponDepthOfFieldFocalLength = 0f;
+        private static float WeaponDepthOfFieldMaxBlurSize = 0f;
+
+        private static GameObject OpticCamera;
+        public static Camera OpticCameraCamera;
+        private static PostProcessLayer OpticCameraPostProcessLayer;
+        private static UnityEngine.Rendering.PostProcessing.DepthOfField OpticCameraDepthOfField;
+        public static ThermalVision OpticCameraThermalVision;
+        private static bool OpticDOFEnabled;
+        private static float OpticDOFAnimation;
+        private static float OpticDOFFocusDistance;
+        private static float OpticDOFFocusDistanceAnimation;
+        private static RaycastHit hit;
+        private static RaycastHit foliageHit;
+        private static LayerMask LowLayerMask = LayerMask.GetMask("Terrain", "LowPolyCollider", "HitCollider");
+        private static LayerMask HighLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider");
+        private static LayerMask FoliageLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider", "Foliage");
+        private static Transform TargetCollider;
+        private static Vector3 TargetLocal;
+        private static AnimationCurve ApertureAnimationCurve;
+        public static bool HoldingBreath = false;
+
         private static GameObject Weather;
         private static WeatherController weatherController;
         private static CC_Sharpen FPSCameraCC_Sharpen;
@@ -48,6 +79,12 @@ namespace AmandsGraphics
         private static float defaultrampOffsetB;
         private static float defaultZeroLevel;
         private static bool defaultFPSCameraSharpen;
+        private static bool defaultFPSCameraWeaponDepthOfField;
+        private static float defaultFPSCameraWeaponDepthOfFieldAperture;
+        private static float defaultFPSCameraWeaponDepthOfFieldFocalLength;
+        private static float defaultFPSCameraWeaponDepthOfFieldFocalSize;
+        private static float defaultFPSCameraWeaponDepthOfFieldMaxBlurSize;
+        private static UnityStandardAssets.ImageEffects.DepthOfField.BlurSampleCount defaultFPSCameraWeaponDepthOfFieldBlurSampleCount;
         private static bool defaultFPSCameraCC_Vintage;
         private static bool defaultFPSCameraCustomGlobalFog;
         private static bool defaultFPSCameraGlobalFog;
@@ -60,7 +97,6 @@ namespace AmandsGraphics
         private static Color defaultNightVisionGroundColor;
         public static HBAO_Core.AOSettings defaultFPSCameraHBAOAOSettings;
         public static HBAO_Core.ColorBleedingSettings defaultFPSCameraHBAOColorBleedingSettings;
-        private static Light sunLight;
         private static GradientColorKey[] gradientColorKeys = { };
         private static GradientColorKey[] defaultGradientColorKeys = { };
         private static bool defaultLightsUseLinearIntensity;
@@ -70,6 +106,7 @@ namespace AmandsGraphics
         public static bool NVG = false;
 
         public bool GraphicsMode = false;
+
         public void Start()
         {
             sceneLevelSettings.Add("City_Scripts", "---City_ levelsettings ---");
@@ -91,11 +128,18 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.HBAOIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HBAOSaturation.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HBAOAlbedoMultiplier.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.DepthOfField.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.DepthOfFieldFocusDistance.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.DepthOfFieldAperture.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.DepthOfFieldFocalLength.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.DepthOfFieldKernelSize.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.SurroundDepthOfField.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.SurroundDOFAperture.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.SurroundDOFKernelSize.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WeaponDepthOfField.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WeaponDOFAperture.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WeaponDOFBlurSampleCount.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.OpticDepthOfField.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.OpticDOFAperture1x.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.OpticDOFAperture2x.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.OpticDOFAperture4x.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.OpticDOFAperture6x.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.OpticDOFKernelSize.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.Brightness.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.Tonemap.SettingChanged += SettingsUpdated;
@@ -190,6 +234,16 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.LightColorIndex3.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LightColorIndex4.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LightColorIndex5.SettingChanged += SettingsUpdated;
+
+            Camera.onPostRender += AmandsOnPostRender;
+
+            ApertureAnimationCurve = new AnimationCurve(
+                new Keyframe(1f, AmandsGraphicsPlugin.OpticDOFAperture1x.Value),
+                new Keyframe(2f, AmandsGraphicsPlugin.OpticDOFAperture2x.Value),
+                new Keyframe(4f, AmandsGraphicsPlugin.OpticDOFAperture4x.Value),
+                new Keyframe(6f, AmandsGraphicsPlugin.OpticDOFAperture6x.Value));
+
+            isLookingEnabled = Traverse.CreateWithType("Player").Property("IsLooking").PropertyExists();
         }
         public void Update()
         {
@@ -279,22 +333,166 @@ namespace AmandsGraphics
                 }
                 UpdateAmandsGraphics();
             }
-            if (AmandsGraphicsPlugin.DepthOfField.Value && FPSCameraDepthOfField != null && FPSCameraCamera != null && localPlayer != null)
+            if ((AmandsGraphicsPlugin.SurroundDepthOfField.Value == EDepthOfField.HoldingBreathOnly || AmandsGraphicsPlugin.OpticDepthOfField.Value == EDepthOfField.HoldingBreathOnly) && localPlayer != null)
             {
+                HoldingBreath = Traverse.Create(Traverse.Create(localPlayer).Field("Physical").GetValue<object>()).Property("HoldingBreath").GetValue<bool>();
+            }
+            if (AmandsGraphicsPlugin.SurroundDepthOfField.Value != EDepthOfField.Off && FPSCameraDepthOfField != null)
+            {
+                switch (AmandsGraphicsPlugin.SurroundDepthOfField.Value)
+                {
+                    case EDepthOfField.On:
+                        DepthOfFieldEnabled = (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.IsAiming && OpticCamera != null && OpticCamera.activeSelf && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                            localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.SurroundDOFOpticZoom.Value - 0.1f) && sightComponent != null &&
+                            sightComponent == localPlayer.ProceduralWeaponAnimation.CurrentAimingMod && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.SelectedScopeIndex == 0);
+                        break;
+                    case EDepthOfField.HoldingBreathOnly:
+                        DepthOfFieldEnabled = (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.IsAiming && OpticCamera != null && OpticCamera.activeSelf && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                            localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.SurroundDOFOpticZoom.Value - 0.1f) && sightComponent != null &&
+                            sightComponent == localPlayer.ProceduralWeaponAnimation.CurrentAimingMod && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.SelectedScopeIndex == 0 && HoldingBreath);
+                        break;
+                }
+                if (isLookingEnabled && DepthOfFieldEnabled && Traverse.Create(localPlayer).Property("IsLooking").GetValue<bool>()) DepthOfFieldEnabled = false;
 
-                if (FPSCameraCameraFOV >= FPSCameraCamera.fieldOfView)
+                DepthOfFieldAnimation += ((DepthOfFieldEnabled ? 1f : 0f) - DepthOfFieldAnimation) * Time.deltaTime * AmandsGraphicsPlugin.SurroundDOFSpeed.Value;
+
+                FPSCameraDepthOfField.focusDistance.value = DepthOfFieldFocusDistance;
+                FPSCameraDepthOfField.focalLength.value = Mathf.Lerp(AmandsGraphicsPlugin.SurroundDOFFocalLengthOff.Value, AmandsGraphicsPlugin.SurroundDOFFocalLength.Value, DepthOfFieldAnimation);
+                FPSCameraDepthOfField.enabled.value = DepthOfFieldAnimation > 0.01f;
+            }
+            if (AmandsGraphicsPlugin.OpticDepthOfField.Value != EDepthOfField.Off && OpticCameraDepthOfField != null)
+            {
+                switch (AmandsGraphicsPlugin.OpticDepthOfField.Value)
                 {
-                    DepthOfFieldMode = FPSCameraCamera.fieldOfView < (AmandsGraphicsPlugin.DepthOfFieldFOV.Value - 0.01f);
+                    case EDepthOfField.On:
+                        OpticDOFEnabled = (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                            localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.OpticDOFOpticZoom.Value - 0.1f) && (OpticCameraThermalVision != null ? !OpticCameraThermalVision.enabled : true) && OpticCamera != null);
+                        break;
+                    case EDepthOfField.HoldingBreathOnly:
+                        OpticDOFEnabled = (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                            localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.OpticDOFOpticZoom.Value - 0.1f) && (OpticCameraThermalVision != null ? !OpticCameraThermalVision.enabled : true) && OpticCamera != null && HoldingBreath);
+                        break;
                 }
-                else
+
+                if (OpticDOFEnabled)
                 {
-                    DepthOfFieldMode = FPSCameraCamera.fieldOfView < 35.01f;
+                    switch (AmandsGraphicsPlugin.OpticDOFRaycastQuality.Value)
+                    {
+                        case ERaycastQuality.Low:
+                            if (Physics.Raycast(OpticCamera.transform.position, OpticCamera.transform.forward, out hit, AmandsGraphicsPlugin.OpticDOFRaycastDistance.Value, LowLayerMask, QueryTriggerInteraction.Ignore))
+                            {
+                                OpticDOFFocusDistance = hit.distance;
+                            }
+                            break;
+                        case ERaycastQuality.High:
+                            if (Physics.Raycast(OpticCamera.transform.position, OpticCamera.transform.forward, out hit, AmandsGraphicsPlugin.OpticDOFRaycastDistance.Value, HighLayerMask, QueryTriggerInteraction.Ignore))
+                            {
+                                OpticDOFFocusDistance = hit.distance;
+                                if (hit.distance > 2f && hit.collider.gameObject.layer == LayerMask.NameToLayer("HitCollider"))
+                                {
+                                    TargetCollider = hit.collider.transform;
+                                    TargetLocal = TargetCollider.InverseTransformPoint(hit.point);
+                                }
+                            }
+                            if (TargetCollider != null)
+                            {
+                                OpticDOFFocusDistance = Vector3.Distance(TargetCollider.TransformPoint(TargetLocal), OpticCamera.transform.position);
+                                if ((Mathf.Abs(Mathf.Tan(Vector3.Angle(TargetCollider.TransformPoint(TargetLocal) - OpticCamera.transform.position, OpticCamera.transform.forward) * Mathf.Deg2Rad) * Vector3.Distance(TargetCollider.TransformPoint(TargetLocal), OpticCamera.transform.position)) > AmandsGraphicsPlugin.OpticDOFTargetDistance.Value / 100f) || Vector3.Distance(TargetCollider.TransformPoint(TargetLocal), OpticCamera.transform.position) < 1f) TargetCollider = null;
+                            }
+                            break;
+                        case ERaycastQuality.Foliage:
+                            if (Physics.Raycast(OpticCamera.transform.position, OpticCamera.transform.forward, out hit, AmandsGraphicsPlugin.OpticDOFRaycastDistance.Value, FoliageLayerMask, QueryTriggerInteraction.Collide))
+                            {
+                                OpticDOFFocusDistance = hit.distance;
+                                if (hit.distance > 2f)
+                                {
+                                    switch (LayerMask.LayerToName(hit.collider.gameObject.layer))
+                                    {
+                                        case "HitCollider":
+                                            TargetCollider = hit.collider.transform;
+                                            TargetLocal = TargetCollider.InverseTransformPoint(hit.point);
+                                            break;
+                                        case "Foliage":
+                                            if (Physics.Raycast(hit.point, OpticCamera.transform.forward, out foliageHit, AmandsGraphicsPlugin.OpticDOFRaycastDistance.Value - hit.distance, HighLayerMask, QueryTriggerInteraction.Ignore))
+                                            {
+                                                if (foliageHit.collider.gameObject.layer == LayerMask.NameToLayer("HitCollider"))
+                                                {
+                                                    TargetCollider = foliageHit.collider.transform;
+                                                    TargetLocal = TargetCollider.InverseTransformPoint(foliageHit.point);
+                                                }
+                                            }
+                                            break;
+                                    }
+                                }
+                            }
+                            if (TargetCollider != null)
+                            {
+                                OpticDOFFocusDistance = Vector3.Distance(TargetCollider.TransformPoint(TargetLocal), OpticCamera.transform.position);
+                                if ((Mathf.Abs(Mathf.Tan(Vector3.Angle(TargetCollider.TransformPoint(TargetLocal) - OpticCamera.transform.position, OpticCamera.transform.forward) * Mathf.Deg2Rad) * Vector3.Distance(TargetCollider.TransformPoint(TargetLocal), OpticCamera.transform.position)) > AmandsGraphicsPlugin.OpticDOFTargetDistance.Value / 100f) || Vector3.Distance(TargetCollider.TransformPoint(TargetLocal), OpticCamera.transform.position) < 1f) TargetCollider = null;
+                            }
+                            break;
+                    }
+                    OpticCameraDepthOfField.aperture.value = ApertureAnimationCurve.Evaluate(localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom());
                 }
-                if (BaseOpticCameraCamera != null && BaseOpticCameraCamera.fieldOfView > AmandsGraphicsPlugin.DepthOfFieldOpticFOV.Value) DepthOfFieldMode = false;
-                FPSCameraCameraFOV = FPSCameraCamera.fieldOfView;
-                DepthOfFieldFocalLength += (((localPlayer.HandsController != null ? localPlayer.HandsController.IsAiming && DepthOfFieldMode : false) ? AmandsGraphicsPlugin.DepthOfFieldFocalLength.Value : AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value) - DepthOfFieldFocalLength) * AmandsGraphicsPlugin.DepthOfFieldSpeed.Value; //  FOV 35.99f
-                FPSCameraDepthOfField.focalLength.value = DepthOfFieldFocalLength;
-                FPSCameraDepthOfField.enabled.value = DepthOfFieldFocalLength > (AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value + 0.1f);
+
+                OpticDOFAnimation += ((OpticDOFEnabled ? 1f : 0f) - OpticDOFAnimation) * Time.deltaTime * AmandsGraphicsPlugin.OpticDOFSpeed.Value;
+                OpticDOFFocusDistanceAnimation += (OpticDOFFocusDistance - OpticDOFFocusDistanceAnimation) * Time.deltaTime * AmandsGraphicsPlugin.OpticDOFDistanceSpeed.Value;
+
+                OpticCameraDepthOfField.focusDistance.value = OpticDOFFocusDistanceAnimation; //Mathf.Max(OpticCameraDepthOfField.focusDistance.value + ((OpticDepthOfFieldFocusDistance - OpticCameraDepthOfField.focusDistance.value) * Time.deltaTime * AmandsGraphicsPlugin.OpticDepthOfFieldSpeed.Value), 0.01f);
+                switch (AmandsGraphicsPlugin.OpticDOFFocalLengthMode.Value)
+                {
+                    case EOpticDOFFocalLengthMode.Math:
+                        OpticCameraDepthOfField.focalLength.value = Mathf.Lerp(0f, Mathf.Sqrt(OpticDOFFocusDistance + 10f) * AmandsGraphicsPlugin.OpticDOFFocalLength.Value, OpticDOFAnimation);
+                        break;
+                    case EOpticDOFFocalLengthMode.FixedValue:
+                        OpticCameraDepthOfField.focalLength.value = AmandsGraphicsPlugin.OpticDOFFocalLength.Value;
+                        break;
+                }
+                OpticCameraDepthOfField.enabled.value = OpticDOFAnimation > 0.01f;
+            }
+            if (AmandsGraphicsPlugin.WeaponDepthOfField.Value != EWeaponDepthOfField.Off && FPSCameraWeaponDepthOfField != null)
+            {
+                weaponDepthOfFieldState = EWeaponDepthOfFieldState.Weapon;
+                if (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.IsAiming && !DepthOfFieldEnabled)
+                {
+                    weaponDepthOfFieldState = EWeaponDepthOfFieldState.Aiming;
+                    if (OpticCamera != null && OpticCamera.activeSelf && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null && sightComponent != null && sightComponent == localPlayer.ProceduralWeaponAnimation.CurrentAimingMod && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.SelectedScopeIndex == 0)
+                    {
+                        weaponDepthOfFieldState = EWeaponDepthOfFieldState.Optic;
+                    }
+                }
+                else if (DepthOfFieldEnabled)
+                {
+                    weaponDepthOfFieldState = EWeaponDepthOfFieldState.Off;
+                }
+                switch (weaponDepthOfFieldState)
+                {
+                    case EWeaponDepthOfFieldState.Off:
+                        WeaponDepthOfFieldFocalLength += (0.0001f - WeaponDepthOfFieldFocalLength) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value * 2f;
+                        WeaponDepthOfFieldMaxBlurSize += (0.001f - WeaponDepthOfFieldMaxBlurSize) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value * 2f;
+                        break;
+                    case EWeaponDepthOfFieldState.Weapon:
+                        WeaponDepthOfFieldFocalLength += ((AmandsGraphicsPlugin.WeaponDOFWeaponFocalLength.Value / 100f) - WeaponDepthOfFieldFocalLength) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value;
+                        WeaponDepthOfFieldMaxBlurSize += ((AmandsGraphicsPlugin.WeaponDOFWeaponMaxBlurSize.Value / 10f) - WeaponDepthOfFieldMaxBlurSize) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value;
+                        break;
+                    case EWeaponDepthOfFieldState.Aiming:
+                        WeaponDepthOfFieldFocalLength += ((AmandsGraphicsPlugin.WeaponDOFAimingFocalLength.Value / 100f) - WeaponDepthOfFieldFocalLength) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value;
+                        WeaponDepthOfFieldMaxBlurSize += ((AmandsGraphicsPlugin.WeaponDOFAimingMaxBlurSize.Value / 10f) - WeaponDepthOfFieldMaxBlurSize) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value;
+                        break;
+                    case EWeaponDepthOfFieldState.Optic:
+                        WeaponDepthOfFieldFocalLength += ((AmandsGraphicsPlugin.WeaponDOFOpticFocalLength.Value / 100f) - WeaponDepthOfFieldFocalLength) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value;
+                        WeaponDepthOfFieldMaxBlurSize += ((AmandsGraphicsPlugin.WeaponDOFOpticMaxBlurSize.Value / 10f) - WeaponDepthOfFieldMaxBlurSize) * Time.deltaTime * AmandsGraphicsPlugin.WeaponDOFSpeed.Value;
+                        break;
+                }
+                FPSCameraWeaponDepthOfField.focalLength = WeaponDepthOfFieldFocalLength * 100f;
+                FPSCameraWeaponDepthOfField.maxBlurSize = WeaponDepthOfFieldMaxBlurSize * 10f;
+            }
+        }
+        public void AmandsOnPostRender(Camera cam)
+        {
+            if (AmandsGraphicsPlugin.SurroundDepthOfField.Value != EDepthOfField.Off && backLens != null)
+            {
+                DepthOfFieldFocusDistance = Vector3.Distance(Camera.current.transform.position, backLens.position);
             }
         }
         public void ActivateAmandsGraphics(GameObject fpscamera, PrismEffects prismeffects)
@@ -323,7 +521,17 @@ namespace AmandsGraphics
                     if (FPSCameraPostProcessLayer != null)
                     {
                         FPSCameraDepthOfField = Traverse.Create(FPSCameraPostProcessLayer).Field("m_Bundles").GetValue<Dictionary<Type, PostProcessBundle>>()[typeof(UnityEngine.Rendering.PostProcessing.DepthOfField)].settings as UnityEngine.Rendering.PostProcessing.DepthOfField;
-                        DepthOfFieldFocalLength = AmandsGraphicsPlugin.DepthOfFieldFocalLengthOff.Value;
+                        FPSCameraDepthOfField.enabled.value = false;
+                    }
+                    FPSCameraWeaponDepthOfField = FPSCamera.GetComponent<UnityStandardAssets.ImageEffects.DepthOfField>();
+                    if (FPSCameraWeaponDepthOfField != null)
+                    {
+                        defaultFPSCameraWeaponDepthOfField = FPSCameraWeaponDepthOfField.enabled;
+                        defaultFPSCameraWeaponDepthOfFieldAperture = FPSCameraWeaponDepthOfField.aperture;
+                        defaultFPSCameraWeaponDepthOfFieldFocalLength = FPSCameraWeaponDepthOfField.focalLength;
+                        defaultFPSCameraWeaponDepthOfFieldFocalSize = FPSCameraWeaponDepthOfField.focalSize;
+                        defaultFPSCameraWeaponDepthOfFieldMaxBlurSize = FPSCameraWeaponDepthOfField.maxBlurSize;
+                        defaultFPSCameraWeaponDepthOfFieldBlurSampleCount = FPSCameraWeaponDepthOfField.blurSampleCount;
                     }
                     FPSCameraCC_Sharpen = FPSCamera.GetComponent<CC_Sharpen>();
                     if (FPSCameraCC_Sharpen != null)
@@ -416,6 +624,26 @@ namespace AmandsGraphics
                 localPlayer = FindObjectOfType<LocalPlayer>();
             }
         }
+        public void ActivateAmandsOpticDepthOfField(GameObject baseopticcamera)
+        {
+            if (OpticCamera == null)
+            {
+                OpticCamera = baseopticcamera;
+                if (OpticCamera != null)
+                {
+                    OpticCameraPostProcessLayer = OpticCamera.GetComponent<PostProcessLayer>();
+                    if (OpticCameraPostProcessLayer != null)
+                    {
+                        OpticCameraDepthOfField = Traverse.Create(OpticCameraPostProcessLayer).Field("m_Bundles").GetValue<Dictionary<Type, PostProcessBundle>>()[typeof(UnityEngine.Rendering.PostProcessing.DepthOfField)].settings as UnityEngine.Rendering.PostProcessing.DepthOfField;
+                        if (OpticCameraDepthOfField != null)
+                        {
+                            OpticCameraDepthOfField.enabled.value = AmandsGraphicsPlugin.OpticDepthOfField.Value != EDepthOfField.Off;
+                            OpticCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.OpticDOFKernelSize.Value;
+                        }
+                    }
+                }
+            }
+        }
         public void UpdateAmandsGraphics()
         {
             GraphicsSettings.lightsUseLinearIntensity = AmandsGraphicsPlugin.LightsUseLinearIntensity.Value;
@@ -425,12 +653,30 @@ namespace AmandsGraphics
                 FPSCameraMotionBlur.sampleCount.Override(AmandsGraphicsPlugin.MotionBlurSampleCount.Value);
                 FPSCameraMotionBlur.shutterAngle.Override(AmandsGraphicsPlugin.MotionBlurShutterAngle.Value);
             }
+            HoldingBreath = false;
             if (FPSCameraDepthOfField != null)
             {
+                DepthOfFieldEnabled = false;
                 FPSCameraDepthOfField.enabled.value = false;
-                FPSCameraDepthOfField.focusDistance.value = AmandsGraphicsPlugin.DepthOfFieldFocusDistance.Value;
-                FPSCameraDepthOfField.aperture.value = AmandsGraphicsPlugin.DepthOfFieldAperture.Value;
-                FPSCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.DepthOfFieldKernelSize.Value;
+                FPSCameraDepthOfField.aperture.value = AmandsGraphicsPlugin.SurroundDOFAperture.Value;
+                FPSCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.SurroundDOFKernelSize.Value;
+            }
+            if (FPSCameraWeaponDepthOfField != null)
+            {
+                FPSCameraWeaponDepthOfField.enabled = AmandsGraphicsPlugin.WeaponDepthOfField.Value != EWeaponDepthOfField.Off;
+                FPSCameraWeaponDepthOfField.aperture = AmandsGraphicsPlugin.WeaponDOFAperture.Value;
+                FPSCameraWeaponDepthOfField.focalSize = 100f;
+                FPSCameraWeaponDepthOfField.blurSampleCount = AmandsGraphicsPlugin.WeaponDOFBlurSampleCount.Value;
+            }
+            ApertureAnimationCurve = new AnimationCurve(
+                new Keyframe(1f, AmandsGraphicsPlugin.OpticDOFAperture1x.Value),
+                new Keyframe(2f, AmandsGraphicsPlugin.OpticDOFAperture2x.Value),
+                new Keyframe(4f, AmandsGraphicsPlugin.OpticDOFAperture4x.Value),
+                new Keyframe(6f, AmandsGraphicsPlugin.OpticDOFAperture6x.Value));
+            if (OpticCameraDepthOfField != null)
+            {
+                OpticCameraDepthOfField.enabled.value = AmandsGraphicsPlugin.OpticDepthOfField.Value != EDepthOfField.Off;
+                OpticCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.OpticDOFKernelSize.Value;
             }
             if (NVG)
             {
@@ -680,6 +926,15 @@ namespace AmandsGraphics
                 FPSCameraHBAO.aoSettings = defaultFPSCameraHBAOAOSettings;
                 FPSCameraHBAO.colorBleedingSettings = defaultFPSCameraHBAOColorBleedingSettings;
             }
+            if (FPSCameraWeaponDepthOfField != null)
+            {
+                FPSCameraWeaponDepthOfField.enabled = WeaponDepthOfFieldEnabled;
+                FPSCameraWeaponDepthOfField.aperture = defaultFPSCameraWeaponDepthOfFieldAperture;
+                FPSCameraWeaponDepthOfField.focalLength = defaultFPSCameraWeaponDepthOfFieldFocalLength;
+                FPSCameraWeaponDepthOfField.focalSize = defaultFPSCameraWeaponDepthOfFieldFocalSize;
+                FPSCameraWeaponDepthOfField.maxBlurSize = defaultFPSCameraWeaponDepthOfFieldMaxBlurSize;
+                FPSCameraWeaponDepthOfField.blurSampleCount = defaultFPSCameraWeaponDepthOfFieldBlurSampleCount;
+            }
             if (FPSCameraPrismEffects != null)
             {
                 FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
@@ -913,6 +1168,35 @@ namespace AmandsGraphics
                 UpdateAmandsGraphics();
             }
         }
+    }
+    public enum EDepthOfField
+    {
+        Off,
+        On,
+        HoldingBreathOnly
+    }
+    public enum EWeaponDepthOfField
+    {
+        Off,
+        On
+    }
+    public enum EWeaponDepthOfFieldState
+    {
+        Off,
+        Weapon,
+        Aiming,
+        Optic
+    }
+    public enum EOpticDOFFocalLengthMode
+    {
+        Math,
+        FixedValue
+    }
+    public enum ERaycastQuality
+    {
+        Low,
+        High,
+        Foliage
     }
     public enum ETonemap
     {
