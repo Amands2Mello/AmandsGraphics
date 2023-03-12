@@ -1,7 +1,6 @@
 
 using Aki.Common.Utils;
 using Aki.Reflection.Patching;
-using Aki.Reflection.Utils;
 using BepInEx;
 using BepInEx.Configuration;
 using System;
@@ -11,10 +10,12 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using EFT.CameraControl;
+using EFT.InventoryLogic;
+using HarmonyLib;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.3.0")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.4.0")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -23,11 +24,11 @@ namespace AmandsGraphics
         public static ConfigEntry<KeyboardShortcut> GraphicsToggle { get; set; }
         public static ConfigEntry<EDebugMode> DebugMode { get; set; }
 
-        public static ConfigEntry<bool> MotionBlur { get; set; }
+        public static ConfigEntry<EEnabledFeature> MotionBlur { get; set; }
         public static ConfigEntry<int> MotionBlurSampleCount { get; set; }
         public static ConfigEntry<float> MotionBlurShutterAngle { get; set; }
 
-        public static ConfigEntry<bool> HBAO { get; set; }
+        public static ConfigEntry<EEnabledFeature> HBAO { get; set; }
         public static ConfigEntry<float> HBAOIntensity { get; set; }
         public static ConfigEntry<float> HBAOSaturation { get; set; }
         public static ConfigEntry<float> HBAOAlbedoMultiplier { get; set; }
@@ -38,16 +39,24 @@ namespace AmandsGraphics
         public static ConfigEntry<float> SurroundDOFSpeed { get; set; }
         public static ConfigEntry<float> SurroundDOFFocalLength { get; set; }
         public static ConfigEntry<float> SurroundDOFFocalLengthOff { get; set; }
-        public static ConfigEntry<KernelSize> SurroundDOFKernelSize { get; set; }
+        public static ConfigEntry<KernelSize> DOFKernelSize { get; set; }
+
+        public static ConfigEntry<EUIDepthOfField> UIDepthOfField { get; set; }
+        public static ConfigEntry<float> UIDOFAperture { get; set; }
+        public static ConfigEntry<float> UIDOFDistance { get; set; }
+        public static ConfigEntry<float> UIDOFSpeed { get; set; }
+        public static ConfigEntry<float> UIDOFFocalLength { get; set; }
 
         public static ConfigEntry<EWeaponDepthOfField> WeaponDepthOfField { get; set; }
         public static ConfigEntry<float> WeaponDOFSpeed { get; set; }
         public static ConfigEntry<float> WeaponDOFWeaponMaxBlurSize { get; set; }
-        public static ConfigEntry<float> WeaponDOFAimingMaxBlurSize { get; set; }
-        public static ConfigEntry<float> WeaponDOFOpticMaxBlurSize { get; set; }
+        public static ConfigEntry<float> WeaponDOFIronSightMaxBlurSize { get; set; }
+        public static ConfigEntry<float> WeaponDOFSightMaxBlurSize { get; set; }
+        public static ConfigEntry<float> WeaponDOFNVGMaxBlurSize { get; set; }
         public static ConfigEntry<float> WeaponDOFWeaponFocalLength { get; set; }
-        public static ConfigEntry<float> WeaponDOFAimingFocalLength { get; set; }
-        public static ConfigEntry<float> WeaponDOFOpticFocalLength { get; set; }
+        public static ConfigEntry<float> WeaponDOFIronSightFocalLength { get; set; }
+        public static ConfigEntry<float> WeaponDOFSightFocalLength { get; set; }
+        public static ConfigEntry<float> WeaponDOFNVGFocalLength { get; set; }
         public static ConfigEntry<float> WeaponDOFAperture { get; set; }
         public static ConfigEntry<UnityStandardAssets.ImageEffects.DepthOfField.BlurSampleCount> WeaponDOFBlurSampleCount { get; set; }
 
@@ -66,6 +75,9 @@ namespace AmandsGraphics
         public static ConfigEntry<float> OpticDOFRaycastDistance { get; set; }
         public static ConfigEntry<float> OpticDOFTargetDistance { get; set; }
 
+        public static ConfigEntry<EEnabledFeature> Flashlight { get; set; }
+        public static ConfigEntry<float> FlashlightRange { get; set; }
+        public static ConfigEntry<float> FlashlightExtinctionCoef { get; set; }
 
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
@@ -190,34 +202,42 @@ namespace AmandsGraphics
             SavePreset = Config.Bind("AmandsGraphics Preset", "SavePreset", "", new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, HideSettingName = true, CustomDrawer = SavePresetDrawer }));
             LoadPreset = Config.Bind("AmandsGraphics Preset", "LoadPreset", "", new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, HideSettingName = true, CustomDrawer = LoadPresetDrawer }));
 
-            GraphicsToggle = Config.Bind(AmandsFeatures, "GraphicsToggle", new KeyboardShortcut(KeyCode.Insert), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 510 }));
-            DebugMode = Config.Bind(AmandsFeatures, "DebugMode", EDebugMode.HBAO, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 500 }));
+            GraphicsToggle = Config.Bind(AmandsFeatures, "GraphicsToggle", new KeyboardShortcut(KeyCode.Insert), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 610 }));
+            DebugMode = Config.Bind(AmandsFeatures, "DebugMode", EDebugMode.HBAO, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 600 }));
 
-            MotionBlur = Config.Bind(AmandsCinematic, "MotionBlur", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 480 }));
-            MotionBlurSampleCount = Config.Bind(AmandsCinematic, "MotionBlur SampleCount", 10, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 470, IsAdvanced = true }));
-            MotionBlurShutterAngle = Config.Bind(AmandsCinematic, "MotionBlur ShutterAngle", 270f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 460, IsAdvanced = true }));
+            MotionBlur = Config.Bind(AmandsCinematic, "MotionBlur", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 670 }));
+            MotionBlurSampleCount = Config.Bind(AmandsCinematic, "MotionBlur SampleCount", 10, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 660, IsAdvanced = true }));
+            MotionBlurShutterAngle = Config.Bind(AmandsCinematic, "MotionBlur ShutterAngle", 270f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 650, IsAdvanced = true }));
 
-            HBAO = Config.Bind(AmandsCinematic, "HBAO", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 450 }));
-            HBAOIntensity = Config.Bind(AmandsCinematic, "HBAO Intensity", 1.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 440, IsAdvanced = true }));
-            HBAOSaturation = Config.Bind(AmandsCinematic, "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 430, IsAdvanced = true }));
-            HBAOAlbedoMultiplier = Config.Bind(AmandsCinematic, "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 420, IsAdvanced = true }));
+            HBAO = Config.Bind(AmandsCinematic, "HBAO", EEnabledFeature.On, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 640 }));
+            HBAOIntensity = Config.Bind(AmandsCinematic, "HBAO Intensity", 1.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 630, IsAdvanced = true }));
+            HBAOSaturation = Config.Bind(AmandsCinematic, "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 620, IsAdvanced = true }));
+            HBAOAlbedoMultiplier = Config.Bind(AmandsCinematic, "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 610, IsAdvanced = true }));
 
-            SurroundDepthOfField = Config.Bind(AmandsCinematic, "SurroundDepthOfField", EDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 410 }));
-            SurroundDOFOpticZoom = Config.Bind(AmandsCinematic, "SurroundDOF OpticZoom", 2f, new ConfigDescription("DepthOfField will be enabled if the zoom is greater than or equal to this value", new AcceptableValueRange<float>(1f, 25f), new ConfigurationManagerAttributes { Order = 400, IsAdvanced = true }));
-            SurroundDOFAperture = Config.Bind(AmandsCinematic, "SurroundDOF Aperture", 5.6f, new ConfigDescription("The smaller the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 390, IsAdvanced = true }));
-            SurroundDOFSpeed = Config.Bind(AmandsCinematic, "SurroundDOF Speed", 4f, new ConfigDescription("Animation speed", new AcceptableValueRange<float>(0.1f, 32f), new ConfigurationManagerAttributes { Order = 380, IsAdvanced = true }));
-            SurroundDOFFocalLength = Config.Bind(AmandsCinematic, "SurroundDOF FocalLength", 25f, new ConfigDescription("The larger the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0f, 100f), new ConfigurationManagerAttributes { Order = 370, IsAdvanced = true }));
-            SurroundDOFFocalLengthOff = Config.Bind(AmandsCinematic, "SurroundDOF FocalLength Off", 4f, new ConfigDescription("The larger the value is, the shallower the depth of field is. Used by animation to determinate what's considered off", new AcceptableValueRange<float>(0f, 100f), new ConfigurationManagerAttributes { Order = 360, IsAdvanced = true }));
-            SurroundDOFKernelSize = Config.Bind(AmandsCinematic, "SurroundDOF KernelSize", KernelSize.Medium, new ConfigDescription("This setting determines the maximum radius of bokeh", null, new ConfigurationManagerAttributes { Order = 350, IsAdvanced = true }));
+            SurroundDepthOfField = Config.Bind(AmandsCinematic, "SurroundDepthOfField", EDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 600 }));
+            SurroundDOFOpticZoom = Config.Bind(AmandsCinematic, "SurroundDOF OpticZoom", 2f, new ConfigDescription("DepthOfField will be enabled if the zoom is greater than or equal to this value", new AcceptableValueRange<float>(1f, 25f), new ConfigurationManagerAttributes { Order = 590, IsAdvanced = true }));
+            SurroundDOFAperture = Config.Bind(AmandsCinematic, "SurroundDOF Aperture", 5.6f, new ConfigDescription("The smaller the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 580, IsAdvanced = true }));
+            SurroundDOFSpeed = Config.Bind(AmandsCinematic, "SurroundDOF Speed", 16f, new ConfigDescription("Animation speed", new AcceptableValueRange<float>(0.1f, 32f), new ConfigurationManagerAttributes { Order = 570, IsAdvanced = true }));
+            SurroundDOFFocalLength = Config.Bind(AmandsCinematic, "SurroundDOF FocalLength", 25f, new ConfigDescription("The larger the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0f, 100f), new ConfigurationManagerAttributes { Order = 560, IsAdvanced = true }));
+            SurroundDOFFocalLengthOff = Config.Bind(AmandsCinematic, "SurroundDOF FocalLength Off", 4f, new ConfigDescription("The larger the value is, the shallower the depth of field is. Used by animation to determinate what's considered off", new AcceptableValueRange<float>(0f, 100f), new ConfigurationManagerAttributes { Order = 550, IsAdvanced = true }));
+            DOFKernelSize = Config.Bind(AmandsCinematic, "DOF KernelSize", KernelSize.Medium, new ConfigDescription("This setting determines the maximum radius of bokeh", null, new ConfigurationManagerAttributes { Order = 540, IsAdvanced = true }));
+
+            UIDepthOfField = Config.Bind(AmandsCinematic, "UIDepthOfField", EUIDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 390 }));
+            UIDOFDistance = Config.Bind(AmandsCinematic, "UIDOF Distance", 0.2f, new ConfigDescription("Focus point distance", new AcceptableValueRange<float>(0.01f, 1f), new ConfigurationManagerAttributes { Order = 380, IsAdvanced = true }));
+            UIDOFAperture = Config.Bind(AmandsCinematic, "UIDOF Aperture", 5.6f, new ConfigDescription("The smaller the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 370, IsAdvanced = true }));
+            UIDOFSpeed = Config.Bind(AmandsCinematic, "UIDOF Speed", 4f, new ConfigDescription("Animation speed", new AcceptableValueRange<float>(0.1f, 32f), new ConfigurationManagerAttributes { Order = 360, IsAdvanced = true }));
+            UIDOFFocalLength = Config.Bind(AmandsCinematic, "UIDOF FocalLength", 25f, new ConfigDescription("The larger the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0f, 100f), new ConfigurationManagerAttributes { Order = 350, IsAdvanced = true }));
 
             WeaponDepthOfField = Config.Bind(AmandsCinematic, "WeaponDepthOfField", EWeaponDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 340 }));
             WeaponDOFSpeed = Config.Bind(AmandsCinematic, "WeaponDOF Speed", 6.0f, new ConfigDescription("Animation speed", new AcceptableValueRange<float>(0.1f, 32f), new ConfigurationManagerAttributes { Order = 330, IsAdvanced = true }));
-            WeaponDOFWeaponMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF Weapon Blur", 3f, new ConfigDescription("Max Blur Size", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 320, IsAdvanced = true }));
-            WeaponDOFAimingMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF Aiming Blur", 4f, new ConfigDescription("Max Blur Size when aiming with iron sights/collimators", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 310, IsAdvanced = true }));
-            WeaponDOFOpticMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF Optic Blur", 6f, new ConfigDescription("Max Blur Size when aiming with optics", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 300, IsAdvanced = true }));
+            WeaponDOFWeaponMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF Weapon Blur", 2f, new ConfigDescription("Max Blur Size", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 320, IsAdvanced = true }));
+            WeaponDOFIronSightMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF IronSight Blur", 3f, new ConfigDescription("Max Blur Size when aiming with iron sights", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 310, IsAdvanced = true }));
+            WeaponDOFSightMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF Sight Blur", 4f, new ConfigDescription("Max Blur Size when aiming with sights", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 300, IsAdvanced = true }));
+            WeaponDOFNVGMaxBlurSize = Config.Bind(AmandsCinematic, "WeaponDOF NVG Blur", 4f, new ConfigDescription("Max Blur Size when aiming with sights", new AcceptableValueRange<float>(0.01f, 10f), new ConfigurationManagerAttributes { Order = 298, IsAdvanced = true }));
             WeaponDOFWeaponFocalLength = Config.Bind(AmandsCinematic, "WeaponDOF Weapon FocalLength", 25f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 100f), new ConfigurationManagerAttributes { Order = 290, IsAdvanced = true }));
-            WeaponDOFAimingFocalLength = Config.Bind(AmandsCinematic, "WeaponDOF Aiming FocalLength", 30f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 100f), new ConfigurationManagerAttributes { Order = 280, IsAdvanced = true }));
-            WeaponDOFOpticFocalLength = Config.Bind(AmandsCinematic, "WeaponDOF Optic FocalLength", 90f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 100f), new ConfigurationManagerAttributes { Order = 270, IsAdvanced = true }));
+            WeaponDOFIronSightFocalLength = Config.Bind(AmandsCinematic, "WeaponDOF IronSight FocalLength", 30f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 100f), new ConfigurationManagerAttributes { Order = 280, IsAdvanced = true }));
+            WeaponDOFSightFocalLength = Config.Bind(AmandsCinematic, "WeaponDOF Sight FocalLength", 90f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 100f), new ConfigurationManagerAttributes { Order = 270, IsAdvanced = true }));
+            WeaponDOFNVGFocalLength = Config.Bind(AmandsCinematic, "WeaponDOF NVG FocalLength", 100f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 100f), new ConfigurationManagerAttributes { Order = 268, IsAdvanced = true }));
             WeaponDOFAperture = Config.Bind(AmandsCinematic, "WeaponDOF Aperture", 0.25f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 2f), new ConfigurationManagerAttributes { Order = 260, IsAdvanced = true }));
             WeaponDOFBlurSampleCount = Config.Bind(AmandsCinematic, "WeaponDOF BlurSampleCount", UnityStandardAssets.ImageEffects.DepthOfField.BlurSampleCount.High, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 250, IsAdvanced = true }));
 
@@ -235,6 +255,10 @@ namespace AmandsGraphics
             OpticDOFDistanceSpeed = Config.Bind(AmandsCinematic, "OpticDOF Distance Speed", 15f, new ConfigDescription("Distance animation speed", new AcceptableValueRange<float>(0.1f, 25f), new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             OpticDOFRaycastDistance = Config.Bind(AmandsCinematic, "OpticDOF Raycast Distance", 1000f, new ConfigDescription("The max distance the ray should check for collisions", new AcceptableValueRange<float>(10f, 10000f), new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             OpticDOFTargetDistance = Config.Bind(AmandsCinematic, "OpticDOF Target Distance", 50.0f, new ConfigDescription("Aiming distance window on spotted target in cm", new AcceptableValueRange<float>(0.0f, 200f), new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+
+            Flashlight = Config.Bind(AmandsCinematic, "Flashlight", EEnabledFeature.On, new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 100 }));
+            FlashlightRange = Config.Bind(AmandsCinematic, "Flashlight Range", 2f, new ConfigDescription("flashlights range multiplier", new AcceptableValueRange<float>(0.5f, 4f), new ConfigurationManagerAttributes { Order = 90 }));
+            FlashlightExtinctionCoef = Config.Bind(AmandsCinematic, "Flashlight ExtinctionCoef", 0.2f, new ConfigDescription("flashlights closer than this distance will have the effect", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 80 }));
 
             Brightness = Config.Bind(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 340 }));
             Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
@@ -254,7 +278,7 @@ namespace AmandsGraphics
             StreetsFogLevel = Config.Bind("Streets", "Fog Level", -250.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             StreetsTonemap = Config.Bind("Streets", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             StreetsACES = Config.Bind("Streets", "ACES", new Vector3(25, 0.2f, 25), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            StreetsACESS = Config.Bind("Streets", "ACESS", new Vector3(0, 1.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            StreetsACESS = Config.Bind("Streets", "ACESS", new Vector3(0, 1.1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             StreetsFilmic = Config.Bind("Streets", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             StreetsFilmicS = Config.Bind("Streets", "FilmicS", new Vector3(0, 0.35f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
@@ -323,11 +347,11 @@ namespace AmandsGraphics
             ShorelineFilmicS = Config.Bind("Shoreline", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             HideoutTonemap = Config.Bind("Hideout", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            HideoutACES = Config.Bind("Hideout", "ACES", new Vector3(8, -0.2f, 8), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
-            HideoutACESS = Config.Bind("Hideout", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            HideoutFilmic = Config.Bind("Hideout", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            HideoutFilmicS = Config.Bind("Hideout", "FilmicS", new Vector3(0, 0.7f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            HideoutSkyColor = Config.Bind("Hideout", "SkyColor", new Vector4(0.5f, 0.5f, 0.5f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            HideoutACES = Config.Bind("Hideout", "ACES", new Vector3(8, -0.1f, 8), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
+            HideoutACESS = Config.Bind("Hideout", "ACESS", new Vector3(0, 0.85f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            HideoutFilmic = Config.Bind("Hideout", "Filmic", new Vector3(4f, 2.1f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            HideoutFilmicS = Config.Bind("Hideout", "FilmicS", new Vector3(0, 0.65f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            HideoutSkyColor = Config.Bind("Hideout", "SkyColor", new Vector4(0.6f, 0.6f, 0.6f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             LightColorIndex0 = Config.Bind("AmandsGraphics LightColor", "Index0", new Vector4(232.0f, 240.0f, 255.0f) / 255.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
             LightColorIndex1 = Config.Bind("AmandsGraphics LightColor", "Index1", new Vector4(0, 0, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
@@ -342,6 +366,9 @@ namespace AmandsGraphics
             new AmandsGraphicsPrismEffectsPatch().Enable();
             new AmandsGraphicsOpticPatch().Enable();
             new AmandsGraphicsOpticSightPatch().Enable();
+            new AmandsGraphicsCameraClassPatch().Enable();
+            new AmandsGraphicsmethod_22Patch().Enable();
+            new AmandsGraphicsTacticalComboVisualControllerPatch().Enable();
         }
 
         public static void SaveAmandsGraphicsPreset()
@@ -593,7 +620,7 @@ namespace AmandsGraphics
     }
     internal class AmandsGraphicsPreset
     {
-        public bool HBAO { get; set; }
+        public EEnabledFeature HBAO { get; set; }
         public float HBAOIntensity { get; set; }
         public float HBAOSaturation { get; set; }
         public float HBAOAlbedoMultiplier { get; set; }
@@ -771,6 +798,96 @@ namespace AmandsGraphics
             if (sightModVisualControllers != null)
             {
                 AmandsGraphicsClass.sightComponent = sightModVisualControllers.SightMod;
+            }
+        }
+    }
+    public class AmandsGraphicsCameraClassPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(CameraClass).GetMethod("Blur", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPrefix]
+        private static bool PatchPrefix(ref CameraClass __instance, bool isActive, float time)
+        {
+            AmandsGraphicsClass.CameraClassBlur = isActive;
+            if (!isActive && __instance.IsActive)
+            {
+                return true;
+            }
+            return AmandsGraphicsPlugin.UIDepthOfField.Value == EUIDepthOfField.Off;
+        }
+    }
+    public class AmandsGraphicsmethod_22Patch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(EFT.Animations.ProceduralWeaponAnimation).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).First(x => x.GetParameters().Count() == 1 && x.GetParameters()[0].Name == "currentScopeIndex");
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref EFT.Animations.ProceduralWeaponAnimation __instance)
+        {
+            if (AmandsGraphicsClass.localPlayer != null && AmandsGraphicsClass.localPlayer.ProceduralWeaponAnimation == __instance)
+            {
+                object CurrentScope = Traverse.Create(AmandsGraphicsClass.localPlayer.ProceduralWeaponAnimation).Property("CurrentScope").GetValue<object>();
+                if (CurrentScope != null)
+                {
+                    ScopePrefabCache scopePrefabCache = Traverse.Create(CurrentScope).Field("ScopePrefabCache").GetValue<ScopePrefabCache>();
+                    if (scopePrefabCache != null)
+                    {
+                        SightComponent Mod = Traverse.Create(CurrentScope).Field("Mod").GetValue<SightComponent>();
+                        if (Mod != null && Mod.SelectedScopeIndex == 0)
+                        {
+                            AmandsGraphicsClass.aimingMode = EAimingMode.Sight;
+                        }
+                        else
+                        {
+                            AmandsGraphicsClass.aimingMode = EAimingMode.IronSight;
+                        }
+                    }
+                    else
+                    {
+                        AmandsGraphicsClass.aimingMode = EAimingMode.IronSight;
+                    }
+                }
+            }
+        }
+    }
+    public class AmandsGraphicsTacticalComboVisualControllerPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(TacticalComboVisualController).GetMethod("UpdateBeams", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref TacticalComboVisualController __instance)
+        {
+            if (AmandsGraphicsPlugin.Flashlight.Value == EEnabledFeature.On && AmandsGraphicsClass.localPlayer != null && Vector3.Distance(__instance.transform.position, AmandsGraphicsClass.localPlayer.Position) < 5f && AmandsGraphicsClass.localPlayer.HandsController != null && __instance.transform.IsChildOf(AmandsGraphicsClass.localPlayer.HandsController.WeaponRoot))
+            {
+                foreach (Light light in Traverse.Create(__instance).Field("light_0").GetValue<Light[]>())
+                {
+                    if (!AmandsGraphicsClass.registeredLights.ContainsKey(light))
+                    {
+                        AmandsGraphicsClass.registeredLights.Add(light,light.range);
+                    }
+                    if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode) light.range = AmandsGraphicsClass.registeredLights[light] * AmandsGraphicsPlugin.FlashlightRange.Value;
+                    VolumetricLight volumetricLight = light.GetComponent<VolumetricLight>();
+                    if (volumetricLight != null)
+                    {
+                        if (!AmandsGraphicsClass.registeredVolumetricLights.ContainsKey(volumetricLight))
+                        {
+                            AmandsGraphicsClass.registeredVolumetricLights.Add(volumetricLight, volumetricLight.ExtinctionCoef);
+                        }
+                        if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode)
+                        {
+                            volumetricLight.ExtinctionCoef = AmandsGraphicsPlugin.FlashlightExtinctionCoef.Value;
+                            if (volumetricLight.VolumetricMaterial != null)
+                            {
+                                volumetricLight.VolumetricMaterial.SetVector("_VolumetricLight", new Vector4(volumetricLight.ScatteringCoef, volumetricLight.ExtinctionCoef, AmandsGraphicsPlugin.FlashlightRange.Value, 1f - volumetricLight.SkyboxExtinctionCoef));
+                            }
+                        }
+                    }
+                }
             }
         }
     }
