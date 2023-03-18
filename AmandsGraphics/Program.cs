@@ -15,7 +15,7 @@ using HarmonyLib;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.4.0")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.0")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -79,6 +79,21 @@ namespace AmandsGraphics
         public static ConfigEntry<float> FlashlightRange { get; set; }
         public static ConfigEntry<float> FlashlightExtinctionCoef { get; set; }
 
+        public static ConfigEntry<EEnabledFeature> NVG { get; set; }
+        public static ConfigEntry<float> NVGAmbientContrast { get; set; }
+        public static ConfigEntry<float> InterchangeNVGAmbientContrast { get; set; }
+        public static ConfigEntry<float> NVGNoiseIntensity { get; set; }
+        public static ConfigEntry<float> InterchangeNVGNoiseIntensity { get; set; }
+        public static ConfigEntry<bool> NVGOriginalColor { get; set; }
+        public static ConfigEntry<float> NVGOriginalSkyColor { get; set; }
+        public static ConfigEntry<float> InterchangeNVGOriginalSkyColor { get; set; }
+        public static ConfigEntry<float> NVGCustomGlobalFogIntensity { get; set; }
+        public static ConfigEntry<float> NVGMoonLightIntensity { get; set; }
+
+        public static ConfigEntry<EEnabledFeature> NightAmbientLight { get; set; }
+        public static ConfigEntry<float> NightAmbientContrast { get; set; }
+        public static ConfigEntry<float> InterchangeNightAmbientContrast { get; set; }
+
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
         public static ConfigEntry<bool> useLut { get; set; }
@@ -92,7 +107,6 @@ namespace AmandsGraphics
         public static ConfigEntry<bool> LightsUseLinearIntensity { get; set; }
         public static ConfigEntry<bool> SunColor { get; set; }
         public static ConfigEntry<bool> SkyColor { get; set; }
-        public static ConfigEntry<bool> NVGColorsFix { get; set; }
         public static ConfigEntry<string> PresetName { get; set; }
         public static ConfigEntry<string> SavePreset { get; set; }
         public static ConfigEntry<string> LoadPreset { get; set; }
@@ -195,8 +209,9 @@ namespace AmandsGraphics
         }
         private void Start()
         {
-            string AmandsFeatures = "AmandsGraphics Features";
             string AmandsCinematic = "AmandsGraphics Cinematic";
+            string AmandsExperimental = "AmandsGraphics Experimental";
+            string AmandsFeatures = "AmandsGraphics Features";
 
             PresetName = Config.Bind("AmandsGraphics Preset", "PresetName", "Experimental", new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 120 }));
             SavePreset = Config.Bind("AmandsGraphics Preset", "SavePreset", "", new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, HideSettingName = true, CustomDrawer = SavePresetDrawer }));
@@ -256,9 +271,20 @@ namespace AmandsGraphics
             OpticDOFRaycastDistance = Config.Bind(AmandsCinematic, "OpticDOF Raycast Distance", 1000f, new ConfigDescription("The max distance the ray should check for collisions", new AcceptableValueRange<float>(10f, 10000f), new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             OpticDOFTargetDistance = Config.Bind(AmandsCinematic, "OpticDOF Target Distance", 50.0f, new ConfigDescription("Aiming distance window on spotted target in cm", new AcceptableValueRange<float>(0.0f, 200f), new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
-            Flashlight = Config.Bind(AmandsCinematic, "Flashlight", EEnabledFeature.On, new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 100 }));
-            FlashlightRange = Config.Bind(AmandsCinematic, "Flashlight Range", 2f, new ConfigDescription("flashlights range multiplier", new AcceptableValueRange<float>(0.5f, 4f), new ConfigurationManagerAttributes { Order = 90 }));
-            FlashlightExtinctionCoef = Config.Bind(AmandsCinematic, "Flashlight ExtinctionCoef", 0.2f, new ConfigDescription("flashlights closer than this distance will have the effect", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 80 }));
+            Flashlight = Config.Bind(AmandsExperimental, "Flashlight", EEnabledFeature.On, new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 170 }));
+            FlashlightRange = Config.Bind(AmandsExperimental, "Flashlight Range", 2f, new ConfigDescription("Flashlights range multiplier", new AcceptableValueRange<float>(0.5f, 4f), new ConfigurationManagerAttributes { Order = 160 }));
+            FlashlightExtinctionCoef = Config.Bind(AmandsExperimental, "Flashlight ExtinctionCoef", 0.2f, new ConfigDescription("Volumetric extinction coefficient", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 150 }));
+
+            NVG = Config.Bind(AmandsExperimental, "NVG", EEnabledFeature.On, new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 150 }));
+            NVGAmbientContrast = Config.Bind(AmandsExperimental, "NVG AmbientContrast", 1f, new ConfigDescription("", new AcceptableValueRange<float>(1f, 1.5f), new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            NVGNoiseIntensity = Config.Bind(AmandsExperimental, "NVG Noise Intensity", 0.8f, new ConfigDescription("", new AcceptableValueRange<float>(0f, 2f), new ConfigurationManagerAttributes { Order = 130 }));
+            NVGOriginalColor = Config.Bind(AmandsExperimental, "NVG Original Color", true, new ConfigDescription("Enables back all default color filters", null, new ConfigurationManagerAttributes { Order = 120 }));
+            NVGOriginalSkyColor = Config.Bind(AmandsExperimental, "NVG Original Sky Color", 0.1f, new ConfigDescription("Enables back the default sky color for NVG", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 110 }));
+            NVGCustomGlobalFogIntensity = Config.Bind(AmandsExperimental, "NVG CustomGlobalFog Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
+            NVGMoonLightIntensity = Config.Bind(AmandsExperimental, "NVG Moon LightIntensity", 1f, new ConfigDescription("", new AcceptableValueRange<float>(0.5f, 2f), new ConfigurationManagerAttributes { Order = 90 }));
+
+            NightAmbientLight = Config.Bind(AmandsExperimental, "Night AmbientLight", EEnabledFeature.On, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80 }));
+            NightAmbientContrast = Config.Bind(AmandsExperimental, "Night AmbientAmbientContrast", 1.1f, new ConfigDescription("", new AcceptableValueRange<float>(1.1f, 1.15f), new ConfigurationManagerAttributes { Order = 70, IsAdvanced = true }));
 
             Brightness = Config.Bind(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 340 }));
             Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
@@ -273,7 +299,6 @@ namespace AmandsGraphics
             LightsUseLinearIntensity = Config.Bind(AmandsFeatures, "LightsUseLinearIntensity", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 240 }));
             SunColor = Config.Bind(AmandsFeatures, "SunColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 230 }));
             SkyColor = Config.Bind(AmandsFeatures, "SkyColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 220 }));
-            NVGColorsFix = Config.Bind(AmandsFeatures, "NVGColorsFix", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 210 }));
 
             StreetsFogLevel = Config.Bind("Streets", "Fog Level", -250.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             StreetsTonemap = Config.Bind("Streets", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
@@ -309,7 +334,7 @@ namespace AmandsGraphics
             FactoryNightFilmic = Config.Bind("FactoryNight", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             FactoryNightFilmicS = Config.Bind("FactoryNight", "FilmicS", new Vector3(0, 0.5f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             FactoryNightSkyColor = Config.Bind("FactoryNight", "SkyColor", new Vector4(0.09f, 0.08f, 0.07f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            FactoryNightNVSkyColor = Config.Bind("FactoryNight", "NVSkyColor", new Vector4(0.25f, 0.25f, 0.25f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            FactoryNightNVSkyColor = Config.Bind("FactoryNight", "NVSkyColor", new Vector4(0.5f, 0.5f, 0.5f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             LighthouseFogLevel = Config.Bind("Lighthouse", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             LighthouseTonemap = Config.Bind("Lighthouse", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
@@ -318,7 +343,11 @@ namespace AmandsGraphics
             LighthouseFilmic = Config.Bind("Lighthouse", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             LighthouseFilmicS = Config.Bind("Lighthouse", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
+            InterchangeNightAmbientContrast = Config.Bind("Interchange", "Night AmbientAmbientContrast", 1.14f, new ConfigDescription("", new AcceptableValueRange<float>(1.1f, 1.15f), new ConfigurationManagerAttributes { Order = 170 }));
             InterchangeFogLevel = Config.Bind("Interchange", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
+            InterchangeNVGNoiseIntensity = Config.Bind("Interchange", "NVG Noise Intensity", 0.25f, new ConfigDescription("", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 158 }));
+            InterchangeNVGAmbientContrast = Config.Bind("Interchange", "NVG AmbientContrast", 1.1f, new ConfigDescription("", new AcceptableValueRange<float>(1f, 1.5f), new ConfigurationManagerAttributes { Order = 156 }));
+            InterchangeNVGOriginalSkyColor = Config.Bind("Interchange", "NVG Original Sky Color", 0.7f, new ConfigDescription("Enables back the default sky color for NVG", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 154, IsAdvanced = true }));
             InterchangeTonemap = Config.Bind("Interchange", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             InterchangeACES = Config.Bind("Interchange", "ACES", new Vector3(20, 3, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             InterchangeACESS = Config.Bind("Interchange", "ACESS", new Vector3(0.50f, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
@@ -362,6 +391,7 @@ namespace AmandsGraphics
             LightColorIndex5 = Config.Bind("AmandsGraphics LightColor", "Index5", new Vector4(150.0f, 143.0f, 122.0f) / 255.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             new AmandsGraphicsNVGPatch().Enable();
+            new AmandsGraphicsApplyNVGPatch().Enable();
             new AmandsGraphicsHBAOPatch().Enable();
             new AmandsGraphicsPrismEffectsPatch().Enable();
             new AmandsGraphicsOpticPatch().Enable();
@@ -399,7 +429,6 @@ namespace AmandsGraphics
                     LightsUseLinearIntensity = LightsUseLinearIntensity.Value,
                     SunColor = SunColor.Value,
                     SkyColor = SkyColor.Value,
-                    NVGColorsFix = NVGColorsFix.Value,
                     StreetsFogLevel = StreetsFogLevel.Value,
                     CustomsFogLevel = CustomsFogLevel.Value,
                     LighthouseFogLevel = LighthouseFogLevel.Value,
@@ -505,7 +534,6 @@ namespace AmandsGraphics
                 LightsUseLinearIntensity.Value = preset.LightsUseLinearIntensity;
                 SunColor.Value = preset.SunColor;
                 SkyColor.Value = preset.SkyColor;
-                NVGColorsFix.Value = preset.NVGColorsFix;
 
                 StreetsFogLevel.Value = preset.StreetsFogLevel;
                 CustomsFogLevel.Value = preset.CustomsFogLevel;
@@ -638,7 +666,6 @@ namespace AmandsGraphics
         public bool LightsUseLinearIntensity { get; set; }
         public bool SunColor { get; set; }
         public bool SkyColor { get; set; }
-        public bool NVGColorsFix { get; set; }
 
         public float StreetsFogLevel { get; set; }
         public float CustomsFogLevel { get; set; }
@@ -729,10 +756,35 @@ namespace AmandsGraphics
         [PatchPostfix]
         private static void PatchPostFix(ref SSAA __instance, bool enabled)
         {
-            if (AmandsGraphicsPlugin.NVGColorsFix.Value && AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.NVG != enabled)
+            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.NVG != enabled)
             {
                 AmandsGraphicsClass.NVG = enabled;
                 AmandsGraphicsPlugin.AmandsGraphicsClassComponent.UpdateAmandsGraphics();
+            }
+        }
+    }
+    public class AmandsGraphicsApplyNVGPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(BSG.CameraEffects.NightVision).GetMethod("StartSwitch", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref BSG.CameraEffects.NightVision __instance)
+        {
+            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode)
+            {
+                AmandsGraphicsClass.defaultNightVisionNoiseIntensity = __instance.NoiseIntensity;
+                switch (AmandsGraphicsClass.scene)
+                {
+                    case "Shopping_Mall_Terrain":
+                        __instance.NoiseIntensity = AmandsGraphicsClass.defaultNightVisionNoiseIntensity * AmandsGraphicsPlugin.InterchangeNVGNoiseIntensity.Value;
+                        break;
+                    default:
+                        __instance.NoiseIntensity = AmandsGraphicsClass.defaultNightVisionNoiseIntensity * AmandsGraphicsPlugin.NVGNoiseIntensity.Value;
+                        break;
+                }
+                __instance.ApplySettings();
             }
         }
     }
