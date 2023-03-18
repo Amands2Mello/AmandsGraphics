@@ -12,6 +12,7 @@ using EFT;
 using EFT.InventoryLogic;
 using System.Reflection;
 using EFT.UI;
+using Comfort.Common;
 
 namespace AmandsGraphics
 {
@@ -68,8 +69,9 @@ namespace AmandsGraphics
         private static AnimationCurve ApertureAnimationCurve;
         public static bool HoldingBreath = false;
 
-        private static GameObject Weather;
         private static WeatherController weatherController;
+        private static ToDController toDController;
+        private static TOD_Sky tOD_Sky;
         private static CC_Sharpen FPSCameraCC_Sharpen;
         private static Dictionary<BloomAndFlares, float> FPSCameraBloomAndFlares = new Dictionary<BloomAndFlares, float>();
         private static PrismEffects FPSCameraPrismEffects;
@@ -77,11 +79,12 @@ namespace AmandsGraphics
         private static CustomGlobalFog FPSCameraCustomGlobalFog;
         private static Behaviour FPSCameraGlobalFog;
         private static ColorCorrectionCurves FPSCameraColorCorrectionCurves;
-        private static NightVision FPSCameraNightVision;
+        public static NightVision FPSCameraNightVision;
+        public static float defaultNightVisionNoiseIntensity;
         private static HBAO FPSCameraHBAO;
         public static HBAO_Core.AOSettings FPSCameraHBAOAOSettings;
         public static HBAO_Core.ColorBleedingSettings FPSCameraHBAOColorBleedingSettings;
-        private static string scene;
+        public static string scene;
         private static LevelSettings levelSettings;
         private static Vector3 defaulttoneValues;
         private static Vector3 defaultsecondaryToneValues;
@@ -112,12 +115,18 @@ namespace AmandsGraphics
         private static GradientColorKey[] gradientColorKeys = { };
         private static GradientColorKey[] defaultGradientColorKeys = { };
         private static bool defaultLightsUseLinearIntensity;
+        private static AnimationCurve defaultAmbientContrast;
+        private static AnimationCurve NightAmbientContrast;
+        private static AnimationCurve NVGAmbientContrast;
+        private static AnimationCurve defaultAmbientBrightness;
+        private static float defaultLightIntensity;
 
         private static Dictionary<string, string> sceneLevelSettings = new Dictionary<string, string>();
 
         public static bool NVG = false;
 
         public bool GraphicsMode = false;
+
         public void Start()
         {
             sceneLevelSettings.Add("City_Scripts", "---City_ levelsettings ---");
@@ -151,7 +160,23 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.OpticDOFAperture4x.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.OpticDOFAperture6x.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.OpticDOFKernelSize.SettingChanged += SettingsUpdated;
+
             AmandsGraphicsPlugin.Flashlight.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.NVG.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGAmbientContrast.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeNVGAmbientContrast.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGNoiseIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeNVGNoiseIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGOriginalSkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGOriginalColor.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGCustomGlobalFogIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGMoonLightIntensity.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.NightAmbientLight.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NightAmbientContrast.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeNightAmbientContrast.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.Brightness.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.Tonemap.SettingChanged += SettingsUpdated;
@@ -166,7 +191,6 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.LightsUseLinearIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.SunColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.SkyColor.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.NVGColorsFix.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.StreetsFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsFogLevel.SettingChanged += SettingsUpdated;
@@ -255,6 +279,8 @@ namespace AmandsGraphics
                 new Keyframe(4f, AmandsGraphicsPlugin.OpticDOFAperture4x.Value),
                 new Keyframe(6f, AmandsGraphicsPlugin.OpticDOFAperture6x.Value));
 
+            NightAmbientContrast = new AnimationCurve(new Keyframe(-0.2522f, AmandsGraphicsPlugin.NightAmbientContrast.Value), new Keyframe(-0.1261f, 1.15f));
+            NVGAmbientContrast = new AnimationCurve(new Keyframe(0f, AmandsGraphicsPlugin.NVGAmbientContrast.Value));
             isLookingEnabled = Traverse.CreateWithType("Player").Property("IsLooking").PropertyExists();
         }
         public void Update()
@@ -279,6 +305,15 @@ namespace AmandsGraphics
                     case EDebugMode.Flashlight:
                         AmandsGraphicsPlugin.Flashlight.Value = AmandsGraphicsPlugin.Flashlight.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
                         break;
+                    case EDebugMode.NVG:
+                        AmandsGraphicsPlugin.NVG.Value = AmandsGraphicsPlugin.NVG.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
+                        break;
+                    case EDebugMode.NVGOriginalColor:
+                        AmandsGraphicsPlugin.NVGOriginalColor.Value = !AmandsGraphicsPlugin.NVGOriginalColor.Value;
+                        break;
+                    case EDebugMode.NightAmbientLight:
+                        AmandsGraphicsPlugin.NightAmbientLight.Value = AmandsGraphicsPlugin.NightAmbientLight.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
+                        break;
                     case EDebugMode.HBAO:
                         AmandsGraphicsPlugin.HBAO.Value = AmandsGraphicsPlugin.HBAO.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
                         break;
@@ -292,6 +327,7 @@ namespace AmandsGraphics
                                 AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.Default;
                                 break;
                         }
+                        UpdateAmandsGraphics();
                         break;
                     case EDebugMode.DefaultToFilmic:
                         switch (AmandsGraphicsPlugin.Tonemap.Value)
@@ -303,6 +339,7 @@ namespace AmandsGraphics
                                 AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.Default;
                                 break;
                         }
+                        UpdateAmandsGraphics();
                         break;
                     case EDebugMode.ACESToFilmic:
                         switch (AmandsGraphicsPlugin.Tonemap.Value)
@@ -314,6 +351,7 @@ namespace AmandsGraphics
                                 AmandsGraphicsPlugin.Tonemap.Value = EGlobalTonemap.ACES;
                                 break;
                         }
+                        UpdateAmandsGraphics();
                         break;
                     case EDebugMode.useLut:
                         AmandsGraphicsPlugin.useLut.Value = !AmandsGraphicsPlugin.useLut.Value;
@@ -342,11 +380,8 @@ namespace AmandsGraphics
                     case EDebugMode.SkyColor:
                         AmandsGraphicsPlugin.SkyColor.Value = !AmandsGraphicsPlugin.SkyColor.Value;
                         break;
-                    case EDebugMode.NVGColorsFix:
-                        AmandsGraphicsPlugin.NVGColorsFix.Value = !AmandsGraphicsPlugin.NVGColorsFix.Value;
-                        break;
                 }
-                UpdateAmandsGraphics();
+                //UpdateAmandsGraphics();
             }
             if ((AmandsGraphicsPlugin.SurroundDepthOfField.Value == EDepthOfField.HoldingBreathOnly || AmandsGraphicsPlugin.OpticDepthOfField.Value == EDepthOfField.HoldingBreathOnly) && localPlayer != null)
             {
@@ -630,13 +665,20 @@ namespace AmandsGraphics
                     {
                         defaultFPSCameraColorCorrectionCurves = FPSCameraColorCorrectionCurves.enabled;
                     }
-                    Weather = GameObject.Find("Weather");
-                    if (Weather != null)
+                    weatherController = WeatherController.Instance;
+                    if (weatherController != null)
                     {
-                        weatherController = Weather.GetComponent<WeatherController>();
-                        if (weatherController != null && weatherController.TimeOfDayController != null)
+                        if (weatherController.TimeOfDayController != null) defaultGradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;
+                        toDController = weatherController.TimeOfDayController;
+                        if (toDController != null)
                         {
-                            defaultGradientColorKeys = weatherController.TimeOfDayController.LightColor.colorKeys;
+                            defaultAmbientBrightness = toDController.AmbientBrightness;
+                            defaultAmbientContrast = toDController.AmbientContrast;
+                        }
+                        tOD_Sky = TOD_Sky.Instance;
+                        if (tOD_Sky != null)
+                        {
+                            defaultLightIntensity = tOD_Sky.Night.LightIntensity;
                         }
                     }
                     FPSCameraNightVision = FPSCamera.GetComponent<NightVision>();
@@ -745,24 +787,96 @@ namespace AmandsGraphics
                 OpticCameraDepthOfField.enabled.value = AmandsGraphicsPlugin.OpticDepthOfField.Value != EDepthOfField.Off;
                 OpticCameraDepthOfField.kernelSize.value = AmandsGraphicsPlugin.OpticDOFKernelSize.Value;
             }
-            if (NVG)
+            if (AmandsGraphicsPlugin.NightAmbientLight.Value == EEnabledFeature.On)
             {
-                ResetGraphics();
-                if (FPSCameraCustomGlobalFog != null)
+                if (toDController != null)
                 {
-                    if (AmandsGraphicsPlugin.CustomGlobalFog.Value)
+                    if (scene == "Shopping_Mall_Terrain")
                     {
-                        FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
-                        FPSCameraCustomGlobalFog.FuncStart = 1f;
-                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
+                        NightAmbientContrast = new AnimationCurve(new Keyframe(-0.2522f, AmandsGraphicsPlugin.InterchangeNightAmbientContrast.Value), new Keyframe(-0.1261f, 1.15f));
                     }
                     else
                     {
-                        FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
-                        FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
-                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
+                        NightAmbientContrast = new AnimationCurve(new Keyframe(-0.2522f, AmandsGraphicsPlugin.NightAmbientContrast.Value), new Keyframe(-0.1261f, 1.15f));
+                    }
+                    toDController.AmbientContrast = NightAmbientContrast;
+                }
+                if (tOD_Sky != null)
+                {
+                    tOD_Sky.Moon.MeshBrightness = 3f;
+                    tOD_Sky.Moon.MeshContrast = 0.5f;
+                    tOD_Sky.Night.LightIntensity = defaultLightIntensity;
+                }
+            }
+            else
+            {
+                if (toDController != null)
+                {
+                    toDController.AmbientContrast = defaultAmbientContrast;
+                }
+                if (tOD_Sky != null)
+                {
+                    tOD_Sky.Moon.MeshBrightness = 3f;
+                    tOD_Sky.Moon.MeshContrast = 0.5f;
+                    tOD_Sky.Night.LightIntensity = defaultLightIntensity;
+                }
+            }
+            if (AmandsGraphicsPlugin.NVG.Value == EEnabledFeature.On && NVG)
+            {
+                if (toDController != null)
+                {
+                    NVGAmbientContrast.RemoveKey(0);
+                    switch (scene)
+                    {
+                        case "Shopping_Mall_Terrain":
+                            NVGAmbientContrast.AddKey(0f, AmandsGraphicsPlugin.InterchangeNVGAmbientContrast.Value);
+                            break;
+                        case "Laboratory_Scripts":
+                            toDController.AmbientContrast = defaultAmbientContrast;
+                            break;
+                        default:
+                            NVGAmbientContrast.AddKey(0f, AmandsGraphicsPlugin.NVGAmbientContrast.Value);
+                            break;
+                    }
+                    if (scene != "Laboratory_Scripts") toDController.AmbientContrast = NVGAmbientContrast;
+                }
+                if (levelSettings != null)
+                {
+                    switch (scene)
+                    {
+                        case "Shopping_Mall_Terrain":
+                            levelSettings.NightVisionSkyColor = Color.Lerp(Color.black, defaultNightVisionSkyColor, AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.Value);
+                            levelSettings.NightVisionEquatorColor = Color.Lerp(Color.black, defaultNightVisionEquatorColor, AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.Value);
+                            levelSettings.NightVisionGroundColor = Color.Lerp(Color.black, defaultNightVisionGroundColor, AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.Value);
+                            break;
+                        default:
+                            levelSettings.NightVisionSkyColor = Color.Lerp(Color.black, defaultNightVisionSkyColor, AmandsGraphicsPlugin.NVGOriginalSkyColor.Value);
+                            levelSettings.NightVisionEquatorColor = Color.Lerp(Color.black, defaultNightVisionEquatorColor, AmandsGraphicsPlugin.NVGOriginalSkyColor.Value);
+                            levelSettings.NightVisionGroundColor = Color.Lerp(Color.black, defaultNightVisionGroundColor, AmandsGraphicsPlugin.NVGOriginalSkyColor.Value);
+                            break;
                     }
                 }
+                if (tOD_Sky != null)
+                {
+                    tOD_Sky.Night.LightIntensity = defaultLightIntensity * AmandsGraphicsPlugin.NVGMoonLightIntensity.Value;
+                }
+                if (FPSCameraNightVision != null)
+                {
+                    switch (scene)
+                    {
+                        case "Shopping_Mall_Terrain":
+                            FPSCameraNightVision.NoiseIntensity = defaultNightVisionNoiseIntensity * AmandsGraphicsPlugin.InterchangeNVGNoiseIntensity.Value;
+                            break;
+                        default:
+                            FPSCameraNightVision.NoiseIntensity = defaultNightVisionNoiseIntensity * AmandsGraphicsPlugin.NVGNoiseIntensity.Value;
+                            break;
+                    }
+                    FPSCameraNightVision.ApplySettings();
+                }
+            }
+            else if (NVG)
+            {
+                ResetGraphics();
                 if (FPSCameraWeaponDepthOfField != null)
                 {
                     FPSCameraWeaponDepthOfField.enabled = AmandsGraphicsPlugin.WeaponDepthOfField.Value != EWeaponDepthOfField.Off;
@@ -772,6 +886,7 @@ namespace AmandsGraphics
                 }
                 return;
             }
+
             if (FPSCameraHBAO != null)
             {
                 if (AmandsGraphicsPlugin.HBAO.Value == EEnabledFeature.On)
@@ -811,7 +926,7 @@ namespace AmandsGraphics
             {
                 BloomAndFlares.Key.bloomIntensity = BloomAndFlares.Value * AmandsGraphicsPlugin.BloomIntensity.Value;
             }
-            if (Weather != null && weatherController != null && weatherController.TimeOfDayController != null)
+            if (weatherController != null && weatherController.TimeOfDayController != null)
             {
                 if (AmandsGraphicsPlugin.SunColor.Value)
                 {
@@ -952,7 +1067,7 @@ namespace AmandsGraphics
                 else
                 {
                     FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
-                    FPSCameraCustomGlobalFog.FuncStart = AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
+                    FPSCameraCustomGlobalFog.FuncStart = NVG ? AmandsGraphicsPlugin.NVGCustomGlobalFogIntensity.Value : AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
                     FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
                 }
             }
@@ -965,32 +1080,32 @@ namespace AmandsGraphics
                 FPSCameraColorCorrectionCurves.enabled = AmandsGraphicsPlugin.ColorCorrectionCurves.Value;
             }
             // NVG FIX
-            //if (AmandsGraphicsPlugin.NVGColorsFix.Value && NVG)
-            //{
-            //    if (FPSCameraPrismEffects != null)
-            //    {
-            //        FPSCameraPrismEffects.useLut = defaultuseLut;
-            //    }
-            //    if (levelSettings != null)
-            //    {
-            //        levelSettings.ZeroLevel = defaultZeroLevel;
-            //    }
-            //    if (FPSCameraCC_Vintage != null)
-            //    {
-            //        FPSCameraCC_Vintage.enabled = defaultFPSCameraCC_Vintage;
-            //    }
-            //    if (FPSCameraCC_Sharpen != null)
-            //    {
-            //        FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
-            //        FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
-            //        FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
-            //        FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
-            //    }
-            //    if (FPSCameraColorCorrectionCurves != null)
-            //    {
-            //        FPSCameraColorCorrectionCurves.enabled = defaultFPSCameraColorCorrectionCurves;
-            //    }
-            //}
+            if (NVG && AmandsGraphicsPlugin.NVGOriginalColor.Value)
+            {
+                if (FPSCameraPrismEffects != null)
+                {
+                    FPSCameraPrismEffects.useLut = defaultuseLut;
+                }
+                if (levelSettings != null)
+                {
+                    //levelSettings.ZeroLevel = defaultZeroLevel;
+                }
+                if (FPSCameraCC_Vintage != null)
+                {
+                    FPSCameraCC_Vintage.enabled = defaultFPSCameraCC_Vintage;
+                }
+                if (FPSCameraCC_Sharpen != null)
+                {
+                    FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
+                    FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
+                    FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
+                    FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
+                }
+                if (FPSCameraColorCorrectionCurves != null)
+                {
+                    FPSCameraColorCorrectionCurves.enabled = defaultFPSCameraColorCorrectionCurves;
+                }
+            }
         }
         private void ResetGraphics()
         {
@@ -1042,9 +1157,24 @@ namespace AmandsGraphics
             {
                 BloomAndFlares.Key.bloomIntensity = BloomAndFlares.Value;
             }
-            if (Weather != null && weatherController != null && weatherController.TimeOfDayController != null)
+            if (weatherController != null && weatherController.TimeOfDayController != null)
             {
                 weatherController.TimeOfDayController.LightColor.colorKeys = defaultGradientColorKeys;
+            }
+            if (toDController != null)
+            {
+                toDController.AmbientContrast = defaultAmbientContrast;
+            }
+            if (tOD_Sky != null)
+            {
+                tOD_Sky.Moon.MeshBrightness = 0.8f;
+                tOD_Sky.Moon.MeshContrast = 1f;
+                tOD_Sky.Night.LightIntensity = defaultLightIntensity;
+            }
+            if (FPSCameraNightVision)
+            {
+                FPSCameraNightVision.NoiseIntensity = defaultNightVisionNoiseIntensity;
+                FPSCameraNightVision.ApplySettings();
             }
             if (FPSCameraCC_Vintage != null)
             {
@@ -1322,6 +1452,9 @@ namespace AmandsGraphics
     public enum EDebugMode
     {
         Flashlight,
+        NVG,
+        NVGOriginalColor,
+        NightAmbientLight,
         HBAO,
         DefaultToACES,
         DefaultToFilmic,
@@ -1334,8 +1467,7 @@ namespace AmandsGraphics
         ColorCorrectionCurves,
         LightsUseLinearIntensity,
         SunColor,
-        SkyColor,
-        NVGColorsFix
+        SkyColor
     }
 }
 
