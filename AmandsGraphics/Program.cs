@@ -12,10 +12,11 @@ using UnityEngine.Rendering.PostProcessing;
 using EFT.CameraControl;
 using EFT.InventoryLogic;
 using HarmonyLib;
+using EFT.UI;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.0")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.1")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -80,6 +81,7 @@ namespace AmandsGraphics
         public static ConfigEntry<float> FlashlightExtinctionCoef { get; set; }
 
         public static ConfigEntry<EEnabledFeature> NVG { get; set; }
+        public static ConfigEntry<ETonemap> NVGTonemap { get; set; }
         public static ConfigEntry<float> NVGAmbientContrast { get; set; }
         public static ConfigEntry<float> InterchangeNVGAmbientContrast { get; set; }
         public static ConfigEntry<float> NVGNoiseIntensity { get; set; }
@@ -276,6 +278,7 @@ namespace AmandsGraphics
             FlashlightExtinctionCoef = Config.Bind(AmandsExperimental, "Flashlight ExtinctionCoef", 0.2f, new ConfigDescription("Volumetric extinction coefficient", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 150 }));
 
             NVG = Config.Bind(AmandsExperimental, "NVG", EEnabledFeature.On, new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 150 }));
+            NVGTonemap = Config.Bind(AmandsExperimental, "NVG Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 142, IsAdvanced = true }));
             NVGAmbientContrast = Config.Bind(AmandsExperimental, "NVG AmbientContrast", 1f, new ConfigDescription("", new AcceptableValueRange<float>(1f, 1.5f), new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             NVGNoiseIntensity = Config.Bind(AmandsExperimental, "NVG Noise Intensity", 0.8f, new ConfigDescription("", new AcceptableValueRange<float>(0f, 2f), new ConfigurationManagerAttributes { Order = 130 }));
             NVGOriginalColor = Config.Bind(AmandsExperimental, "NVG Original Color", true, new ConfigDescription("Enables back all default color filters", null, new ConfigurationManagerAttributes { Order = 120 }));
@@ -350,9 +353,9 @@ namespace AmandsGraphics
             InterchangeNVGOriginalSkyColor = Config.Bind("Interchange", "NVG Original Sky Color", 0.7f, new ConfigDescription("Enables back the default sky color for NVG", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 154, IsAdvanced = true }));
             InterchangeTonemap = Config.Bind("Interchange", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             InterchangeACES = Config.Bind("Interchange", "ACES", new Vector3(20, 3, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            InterchangeACESS = Config.Bind("Interchange", "ACESS", new Vector3(0.50f, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            InterchangeACESS = Config.Bind("Interchange", "ACESS", new Vector3(0.50f, 0.95f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             InterchangeFilmic = Config.Bind("Interchange", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            InterchangeFilmicS = Config.Bind("Interchange", "FilmicS", new Vector3(-0.01f, 0.18f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            InterchangeFilmicS = Config.Bind("Interchange", "FilmicS", new Vector3(-0.01f, 0.17f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             WoodsFogLevel = Config.Bind("Woods", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             WoodsTonemap = Config.Bind("Woods", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
@@ -364,7 +367,7 @@ namespace AmandsGraphics
             ReserveFogLevel = Config.Bind("Reserve", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             ReserveTonemap = Config.Bind("Reserve", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             ReserveACES = Config.Bind("Reserve", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            ReserveACESS = Config.Bind("Reserve", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            ReserveACESS = Config.Bind("Reserve", "ACESS", new Vector3(0, 0.85f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             ReserveFilmic = Config.Bind("Reserve", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             ReserveFilmicS = Config.Bind("Reserve", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
@@ -751,16 +754,17 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(SSAA).GetMethod("SetNightVisionEnabled", BindingFlags.Instance | BindingFlags.Public);
+            return typeof(BSG.CameraEffects.NightVision).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).First(x => x.GetParameters().Count() == 1 && x.GetParameters()[0].Name == "on" && x.Name != "StartSwitch");
         }
         [PatchPostfix]
-        private static void PatchPostFix(ref SSAA __instance, bool enabled)
+        private static void PatchPostFix(ref BSG.CameraEffects.NightVision __instance, bool on)
         {
-            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.NVG != enabled)
+            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.NVG != on)
             {
-                AmandsGraphicsClass.NVG = enabled;
+                AmandsGraphicsClass.NVG = on;
                 AmandsGraphicsPlugin.AmandsGraphicsClassComponent.UpdateAmandsGraphics();
             }
+            AmandsGraphicsClass.NVG = on;
         }
     }
     public class AmandsGraphicsApplyNVGPatch : ModulePatch
