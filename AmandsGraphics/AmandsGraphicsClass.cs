@@ -164,6 +164,7 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.Flashlight.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.NVG.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.NVGTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.NVGAmbientContrast.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.InterchangeNVGAmbientContrast.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.NVGNoiseIntensity.SettingChanged += SettingsUpdated;
@@ -905,20 +906,38 @@ namespace AmandsGraphics
             }
             if (FPSCameraPrismEffects != null)
             {
-                switch (AmandsGraphicsPlugin.Tonemap.Value)
+                if (NVG)
                 {
-                    case EGlobalTonemap.Default:
-                        DefaultTonemap();
-                        break;
-                    case EGlobalTonemap.ACES:
-                        ACESTonemap();
-                        break;
-                    case EGlobalTonemap.Filmic:
-                        FilmicTonemap();
-                        break;
-                    case EGlobalTonemap.PerMap:
-                        PerMapTonemap();
-                        break;
+                    switch (AmandsGraphicsPlugin.NVGTonemap.Value)
+                    {
+                        case ETonemap.Default:
+                            DefaultTonemap();
+                            break;
+                        case ETonemap.ACES:
+                            ACESTonemap();
+                            break;
+                        case ETonemap.Filmic:
+                            FilmicTonemap();
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (AmandsGraphicsPlugin.Tonemap.Value)
+                    {
+                        case EGlobalTonemap.Default:
+                            DefaultTonemap();
+                            break;
+                        case EGlobalTonemap.ACES:
+                            ACESTonemap();
+                            break;
+                        case EGlobalTonemap.Filmic:
+                            FilmicTonemap();
+                            break;
+                        case EGlobalTonemap.PerMap:
+                            PerMapTonemap();
+                            break;
+                    }
                 }
                 FPSCameraPrismEffects.useLut = AmandsGraphicsPlugin.useLut.Value ? defaultuseLut : false;
             }
