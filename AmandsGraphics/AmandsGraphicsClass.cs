@@ -179,6 +179,16 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.NightAmbientContrast.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.InterchangeNightAmbientContrast.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.MysticalGlow.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.MysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.StreetsMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.CustomsMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LighthouseMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.InterchangeMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.WoodsMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ReserveMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.ShorelineMysticalGlowIntensity.SettingChanged += SettingsUpdated;
+
             AmandsGraphicsPlugin.Brightness.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.Tonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.useLut.SettingChanged += SettingsUpdated;
@@ -317,6 +327,9 @@ namespace AmandsGraphics
                         break;
                     case EDebugMode.HBAO:
                         AmandsGraphicsPlugin.HBAO.Value = AmandsGraphicsPlugin.HBAO.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
+                        break;
+                    case EDebugMode.MysticalGlow:
+                        AmandsGraphicsPlugin.MysticalGlow.Value = AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
                         break;
                     case EDebugMode.DefaultToACES:
                         switch (AmandsGraphicsPlugin.Tonemap.Value)
@@ -970,26 +983,82 @@ namespace AmandsGraphics
                     switch (scene)
                     {
                         case "City_Scripts":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.StreetsMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.StreetsFogLevel.Value;
                             break;
                         case "Laboratory_Scripts":
                             break;
                         case "custom_Light":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.CustomsMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
                             break;
                         case "Lighthouse_Abadonned_pier":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.LighthouseMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value;
                             break;
                         case "Shopping_Mall_Terrain":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.InterchangeMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value;
                             break;
                         case "woods_combined":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.WoodsMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value;
                             break;
                         case "Reserve_Base_DesignStuff":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.ReserveMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ReserveFogLevel.Value;
                             break;
                         case "shoreline_scripts":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.ShorelineMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ShorelineFogLevel.Value;
                             break;
                         case "Factory_Day":
@@ -1475,6 +1544,7 @@ namespace AmandsGraphics
         NVGOriginalColor,
         NightAmbientLight,
         HBAO,
+        MysticalGlow,
         DefaultToACES,
         DefaultToFilmic,
         ACESToFilmic,
