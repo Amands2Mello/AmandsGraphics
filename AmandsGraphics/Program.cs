@@ -13,14 +13,18 @@ using EFT.CameraControl;
 using EFT.InventoryLogic;
 using HarmonyLib;
 using EFT.UI;
+using System.Collections.Generic;
+using EFT;
+using System.Threading.Tasks;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.2")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.3")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
         public static AmandsGraphicsClass AmandsGraphicsClassComponent;
+        public static Type PainKillerEffectType;
 
         public static ConfigEntry<KeyboardShortcut> GraphicsToggle { get; set; }
         public static ConfigEntry<EDebugMode> DebugMode { get; set; }
@@ -33,6 +37,9 @@ namespace AmandsGraphics
         public static ConfigEntry<float> HBAOIntensity { get; set; }
         public static ConfigEntry<float> HBAOSaturation { get; set; }
         public static ConfigEntry<float> HBAOAlbedoMultiplier { get; set; }
+        public static ConfigEntry<float> LabsHBAOIntensity { get; set; }
+        public static ConfigEntry<float> LabsHBAOSaturation { get; set; }
+        public static ConfigEntry<float> LabsHBAOAlbedoMultiplier { get; set; }
 
         public static ConfigEntry<EDepthOfField> SurroundDepthOfField { get; set; }
         public static ConfigEntry<float> SurroundDOFOpticZoom { get; set; }
@@ -106,16 +113,25 @@ namespace AmandsGraphics
         public static ConfigEntry<float> ReserveMysticalGlowIntensity { get; set; }
         public static ConfigEntry<float> ShorelineMysticalGlowIntensity { get; set; }
 
+        public static ConfigEntry<EEnabledFeature> HealthEffectHit { get; set; }
+        public static ConfigEntry<float> HitCAIntensity { get; set; }
+        public static ConfigEntry<float> HitCASpeed { get; set; }
+        public static ConfigEntry<float> HitCAPower { get; set; }
+
+        public static ConfigEntry<EEnabledFeature> HealthEffectPainkiller { get; set; }
+        public static ConfigEntry<float> PainkillerSaturation { get; set; }
+        public static ConfigEntry<float> PainkillerCAIntensity { get; set; }
+
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
-        public static ConfigEntry<bool> useLut { get; set; }
+        public static ConfigEntry<bool> UseBSGLUT { get; set; }
         public static ConfigEntry<float> BloomIntensity { get; set; }
-        public static ConfigEntry<bool> CC_Vintage { get; set; }
-        public static ConfigEntry<bool> CC_Sharpen { get; set; }
-        public static ConfigEntry<bool> CustomGlobalFog { get; set; }
+        public static ConfigEntry<bool> UseBSGCC_Vintage { get; set; }
+        public static ConfigEntry<bool> UseBSGCC_Sharpen { get; set; }
+        public static ConfigEntry<bool> UseBSGCustomGlobalFog { get; set; }
         public static ConfigEntry<float> CustomGlobalFogIntensity { get; set; }
-        public static ConfigEntry<bool> GlobalFog { get; set; }
-        public static ConfigEntry<bool> ColorCorrectionCurves { get; set; }
+        public static ConfigEntry<bool> UseBSGGlobalFog { get; set; }
+        public static ConfigEntry<bool> UseBSGColorCorrectionCurves { get; set; }
         public static ConfigEntry<bool> LightsUseLinearIntensity { get; set; }
         public static ConfigEntry<bool> SunColor { get; set; }
         public static ConfigEntry<bool> SkyColor { get; set; }
@@ -232,7 +248,7 @@ namespace AmandsGraphics
             GraphicsToggle = Config.Bind(AmandsFeatures, "GraphicsToggle", new KeyboardShortcut(KeyCode.Insert), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 610 }));
             DebugMode = Config.Bind(AmandsFeatures, "DebugMode", EDebugMode.HBAO, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 600 }));
 
-            MotionBlur = Config.Bind(AmandsCinematic, "MotionBlur", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 670 }));
+            MotionBlur = Config.Bind(AmandsCinematic, "MotionBlur", EEnabledFeature.Off, new ConfigDescription("Motion Blur needs anti-aliasing set to TAA to work as intended", null, new ConfigurationManagerAttributes { Order = 670 }));
             MotionBlurSampleCount = Config.Bind(AmandsCinematic, "MotionBlur SampleCount", 10, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 660, IsAdvanced = true }));
             MotionBlurShutterAngle = Config.Bind(AmandsCinematic, "MotionBlur ShutterAngle", 270f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 650, IsAdvanced = true }));
 
@@ -241,7 +257,7 @@ namespace AmandsGraphics
             HBAOSaturation = Config.Bind(AmandsCinematic, "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 620, IsAdvanced = true }));
             HBAOAlbedoMultiplier = Config.Bind(AmandsCinematic, "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 610, IsAdvanced = true }));
 
-            SurroundDepthOfField = Config.Bind(AmandsCinematic, "SurroundDepthOfField", EDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 600 }));
+            SurroundDepthOfField = Config.Bind(AmandsCinematic, "SurroundDepthOfField", EDepthOfField.Off, new ConfigDescription("High-Quality Color needs to be Enabled on Graphics Settings", null, new ConfigurationManagerAttributes { Order = 600 }));
             SurroundDOFOpticZoom = Config.Bind(AmandsCinematic, "SurroundDOF OpticZoom", 2f, new ConfigDescription("DepthOfField will be enabled if the zoom is greater than or equal to this value", new AcceptableValueRange<float>(1f, 25f), new ConfigurationManagerAttributes { Order = 590, IsAdvanced = true }));
             SurroundDOFAperture = Config.Bind(AmandsCinematic, "SurroundDOF Aperture", 5.6f, new ConfigDescription("The smaller the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 580, IsAdvanced = true }));
             SurroundDOFSpeed = Config.Bind(AmandsCinematic, "SurroundDOF Speed", 16f, new ConfigDescription("Animation speed", new AcceptableValueRange<float>(0.1f, 32f), new ConfigurationManagerAttributes { Order = 570, IsAdvanced = true }));
@@ -249,7 +265,7 @@ namespace AmandsGraphics
             SurroundDOFFocalLengthOff = Config.Bind(AmandsCinematic, "SurroundDOF FocalLength Off", 4f, new ConfigDescription("The larger the value is, the shallower the depth of field is. Used by animation to determinate what's considered off", new AcceptableValueRange<float>(0f, 100f), new ConfigurationManagerAttributes { Order = 550, IsAdvanced = true }));
             DOFKernelSize = Config.Bind(AmandsCinematic, "DOF KernelSize", KernelSize.Medium, new ConfigDescription("This setting determines the maximum radius of bokeh", null, new ConfigurationManagerAttributes { Order = 540, IsAdvanced = true }));
 
-            UIDepthOfField = Config.Bind(AmandsCinematic, "UIDepthOfField", EUIDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 390 }));
+            UIDepthOfField = Config.Bind(AmandsCinematic, "UIDepthOfField", EUIDepthOfField.Off, new ConfigDescription("High-Quality Color needs to be Enabled on Graphics Settings\"", null, new ConfigurationManagerAttributes { Order = 390 }));
             UIDOFDistance = Config.Bind(AmandsCinematic, "UIDOF Distance", 0.2f, new ConfigDescription("Focus point distance", new AcceptableValueRange<float>(0.01f, 1f), new ConfigurationManagerAttributes { Order = 380, IsAdvanced = true }));
             UIDOFAperture = Config.Bind(AmandsCinematic, "UIDOF Aperture", 5.6f, new ConfigDescription("The smaller the value is, the shallower the depth of field is", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 370, IsAdvanced = true }));
             UIDOFSpeed = Config.Bind(AmandsCinematic, "UIDOF Speed", 4f, new ConfigDescription("Animation speed", new AcceptableValueRange<float>(0.1f, 32f), new ConfigurationManagerAttributes { Order = 360, IsAdvanced = true }));
@@ -268,7 +284,7 @@ namespace AmandsGraphics
             WeaponDOFAperture = Config.Bind(AmandsCinematic, "WeaponDOF Aperture", 0.25f, new ConfigDescription("", new AcceptableValueRange<float>(0.01f, 2f), new ConfigurationManagerAttributes { Order = 260, IsAdvanced = true }));
             WeaponDOFBlurSampleCount = Config.Bind(AmandsCinematic, "WeaponDOF BlurSampleCount", UnityStandardAssets.ImageEffects.DepthOfField.BlurSampleCount.High, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 250, IsAdvanced = true }));
 
-            OpticDepthOfField = Config.Bind(AmandsCinematic, "OpticDepthOfField", EDepthOfField.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 240 }));
+            OpticDepthOfField = Config.Bind(AmandsCinematic, "OpticDepthOfField", EDepthOfField.Off, new ConfigDescription("High-Quality Color needs to be Enabled on Graphics Settings\"", null, new ConfigurationManagerAttributes { Order = 240 }));
             OpticDOFOpticZoom = Config.Bind(AmandsCinematic, "OpticDOF OpticZoom", 2f, new ConfigDescription("OpticDepthOfField will be enabled if the zoom is greater than or equal to this value", new AcceptableValueRange<float>(1f, 25f), new ConfigurationManagerAttributes { Order = 230, IsAdvanced = true }));
             OpticDOFAperture1x = Config.Bind(AmandsCinematic, "OpticDOF Aperture 1x", 64f, new ConfigDescription("The smaller the value is, the shallower the depth of field is at 1x zoom", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 220, IsAdvanced = true }));
             OpticDOFAperture2x = Config.Bind(AmandsCinematic, "OpticDOF Aperture 2x", 32f, new ConfigDescription("The smaller the value is, the shallower the depth of field is at 2x zoom", new AcceptableValueRange<float>(0.01f, 128f), new ConfigurationManagerAttributes { Order = 210, IsAdvanced = true }));
@@ -301,16 +317,25 @@ namespace AmandsGraphics
             MysticalGlow = Config.Bind(AmandsExperimental, "MysticalGlow", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 60 }));
             MysticalGlowIntensity = Config.Bind(AmandsExperimental, "MysticalGlow Intensity", 0.05f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 0.1f), new ConfigurationManagerAttributes { Order = 50, IsAdvanced = true }));
 
+            HealthEffectHit = Config.Bind(AmandsExperimental, "HealthEffect Hit", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 40 }));
+            HitCAIntensity = Config.Bind(AmandsExperimental, "ChromaticAberration", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 30 }));
+            HitCASpeed = Config.Bind(AmandsExperimental, "ChromaticAberration Speed", 1.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 20, IsAdvanced = true }));
+            HitCAPower = Config.Bind(AmandsExperimental, "ChromaticAberration Power", 100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 10, IsAdvanced = true }));
+
+            HealthEffectPainkiller = Config.Bind(AmandsExperimental, "HealthEffect Painkiller", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 8 }));
+            PainkillerSaturation = Config.Bind(AmandsExperimental, "Painkiller Saturation", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 6 }));
+            PainkillerCAIntensity = Config.Bind(AmandsExperimental, "Painkiller ChromaticAberration", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 4 }));
+
             Brightness = Config.Bind(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 340 }));
             Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
-            useLut = Config.Bind(AmandsFeatures, "useLut", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 320 }));
+            UseBSGLUT = Config.Bind(AmandsFeatures, "Use BSG LUT", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 320, IsAdvanced = true }));
             BloomIntensity = Config.Bind(AmandsFeatures, "Bloom Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 310 }));
-            CC_Vintage = Config.Bind(AmandsFeatures, "CC_Vintage", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 300 }));
-            CC_Sharpen = Config.Bind(AmandsFeatures, "CC_Sharpen", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 290 }));
-            CustomGlobalFog = Config.Bind(AmandsFeatures, "CustomGlobalFog", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 280 }));
-            CustomGlobalFogIntensity = Config.Bind(AmandsFeatures, "CustomGlobalFog Intensity", 0.1f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 270 }));
-            GlobalFog = Config.Bind(AmandsFeatures, "GlobalFog", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 260 }));
-            ColorCorrectionCurves = Config.Bind(AmandsFeatures, "ColorCorrectionCurves", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 250 }));
+            UseBSGCC_Vintage = Config.Bind(AmandsFeatures, "Use BSG CC_Vintage", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 300, IsAdvanced = true }));
+            UseBSGCC_Sharpen = Config.Bind(AmandsFeatures, "Use BSG CC_Sharpen", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 290, IsAdvanced = true }));
+            UseBSGCustomGlobalFog = Config.Bind(AmandsFeatures, "Use BSG CustomGlobalFog", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 280, IsAdvanced = true }));
+            CustomGlobalFogIntensity = Config.Bind(AmandsFeatures, "CustomGlobalFog Intensity", 0.1f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 270, IsAdvanced = true }));
+            UseBSGGlobalFog = Config.Bind(AmandsFeatures, "Use BSG GlobalFog", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 260, IsAdvanced = true }));
+            UseBSGColorCorrectionCurves = Config.Bind(AmandsFeatures, "Use BSG ColorCorrection", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 250, IsAdvanced = true }));
             LightsUseLinearIntensity = Config.Bind(AmandsFeatures, "LightsUseLinearIntensity", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 240 }));
             SunColor = Config.Bind(AmandsFeatures, "SunColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 230 }));
             SkyColor = Config.Bind(AmandsFeatures, "SkyColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 220 }));
@@ -328,6 +353,9 @@ namespace AmandsGraphics
             LabsACESS = Config.Bind("Labs", "ACESS", new Vector3(0, 2, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             LabsFilmic = Config.Bind("Labs", "Filmic", new Vector3(2f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             LabsFilmicS = Config.Bind("Labs", "FilmicS", new Vector3(0, 0.5f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            LabsHBAOIntensity = Config.Bind("Labs", "HBAO Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
+            LabsHBAOSaturation = Config.Bind("Labs", "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 90, IsAdvanced = true }));
+            LabsHBAOAlbedoMultiplier = Config.Bind("Labs", "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80, IsAdvanced = true }));
 
             CustomsFogLevel = Config.Bind("Customs", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             CustomsTonemap = Config.Bind("Customs", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
@@ -412,6 +440,7 @@ namespace AmandsGraphics
             LightColorIndex4 = Config.Bind("AmandsGraphics LightColor", "Index4", new Vector4(255.0f, 238.0f, 196.0f) / 255.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             LightColorIndex5 = Config.Bind("AmandsGraphics LightColor", "Index5", new Vector4(150.0f, 143.0f, 122.0f) / 255.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
+            new AmandsLocalPlayerPatch().Enable();
             new AmandsGraphicsNVGPatch().Enable();
             new AmandsGraphicsApplyNVGPatch().Enable();
             new AmandsGraphicsHBAOPatch().Enable();
@@ -421,8 +450,12 @@ namespace AmandsGraphics
             new AmandsGraphicsCameraClassPatch().Enable();
             new AmandsGraphicsmethod_22Patch().Enable();
             new AmandsGraphicsTacticalComboVisualControllerPatch().Enable();
+            new AmandsGraphicsFastBlurPatch().Enable();
+            new AmandsGraphicsMethod_7Patch().Enable();
+            new AmandsGraphicsFastBlurHitPatch().Enable();
+            new AmandsBattleUIScreenPatch().Enable();
+            new AmandsEffectsControllerPatch().Enable();
         }
-
         public static void SaveAmandsGraphicsPreset()
         {
             if (PresetName.Value != "")
@@ -440,14 +473,14 @@ namespace AmandsGraphics
 
                     Brightness = Brightness.Value,
                     Tonemap = Tonemap.Value,
-                    useLut = useLut.Value,
+                    useLut = UseBSGLUT.Value,
                     BloomIntensity = BloomIntensity.Value,
-                    CC_Vintage = CC_Vintage.Value,
-                    CC_Sharpen = CC_Sharpen.Value,
-                    CustomGlobalFog = CustomGlobalFog.Value,
+                    CC_Vintage = UseBSGCC_Vintage.Value,
+                    CC_Sharpen = UseBSGCC_Sharpen.Value,
+                    CustomGlobalFog = UseBSGCustomGlobalFog.Value,
                     CustomGlobalFogIntensity = CustomGlobalFogIntensity.Value,
-                    GlobalFog = GlobalFog.Value,
-                    ColorCorrectionCurves = ColorCorrectionCurves.Value,
+                    GlobalFog = UseBSGGlobalFog.Value,
+                    ColorCorrectionCurves = UseBSGColorCorrectionCurves.Value,
                     LightsUseLinearIntensity = LightsUseLinearIntensity.Value,
                     SunColor = SunColor.Value,
                     SkyColor = SkyColor.Value,
@@ -545,14 +578,14 @@ namespace AmandsGraphics
 
                 Brightness.Value = preset.Brightness;
                 Tonemap.Value = preset.Tonemap;
-                useLut.Value = preset.useLut;
+                UseBSGLUT.Value = preset.useLut;
                 BloomIntensity.Value = preset.BloomIntensity;
-                CC_Vintage.Value = preset.CC_Vintage;
-                CC_Sharpen.Value = preset.CC_Sharpen;
-                CustomGlobalFog.Value = preset.CustomGlobalFog;
+                UseBSGCC_Vintage.Value = preset.CC_Vintage;
+                UseBSGCC_Sharpen.Value = preset.CC_Sharpen;
+                UseBSGCustomGlobalFog.Value = preset.CustomGlobalFog;
                 CustomGlobalFogIntensity.Value = preset.CustomGlobalFogIntensity;
-                GlobalFog.Value = preset.GlobalFog;
-                ColorCorrectionCurves.Value = preset.ColorCorrectionCurves;
+                UseBSGGlobalFog.Value = preset.GlobalFog;
+                UseBSGColorCorrectionCurves.Value = preset.ColorCorrectionCurves;
                 LightsUseLinearIntensity.Value = preset.LightsUseLinearIntensity;
                 SunColor.Value = preset.SunColor;
                 SkyColor.Value = preset.SkyColor;
@@ -769,6 +802,22 @@ namespace AmandsGraphics
         public Vector4 LightColorIndex5 { get; set; }
 
     }
+    public class AmandsLocalPlayerPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(LocalPlayer).GetMethod("Create", BindingFlags.Static | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref Task<LocalPlayer> __result)
+        {
+            LocalPlayer localPlayer = __result.Result;
+            if (localPlayer != null && localPlayer.IsYourPlayer)
+            {
+                AmandsGraphicsClass.localPlayer = localPlayer;
+            }
+        }
+    }
     public class AmandsGraphicsNVGPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
@@ -778,7 +827,7 @@ namespace AmandsGraphics
         [PatchPostfix]
         private static void PatchPostFix(ref BSG.CameraEffects.NightVision __instance, bool on)
         {
-            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.NVG != on)
+            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.localPlayer != null && AmandsGraphicsClass.NVG != on && AmandsGraphicsClass.FPSCameraNightVision != null)
             {
                 AmandsGraphicsClass.NVG = on;
                 AmandsGraphicsPlugin.AmandsGraphicsClassComponent.UpdateAmandsGraphics();
@@ -795,7 +844,7 @@ namespace AmandsGraphics
         [PatchPostfix]
         private static void PatchPostFix(ref BSG.CameraEffects.NightVision __instance)
         {
-            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode)
+            if (AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode && AmandsGraphicsClass.localPlayer != null)
             {
                 AmandsGraphicsClass.defaultNightVisionNoiseIntensity = __instance.NoiseIntensity;
                 switch (AmandsGraphicsClass.scene)
@@ -835,7 +884,16 @@ namespace AmandsGraphics
         [PatchPostfix]
         private static void PatchPostFix(ref PrismEffects __instance)
         {
-            if (__instance.gameObject.name == "FPS Camera") AmandsGraphicsPlugin.AmandsGraphicsClassComponent.ActivateAmandsGraphics(__instance.gameObject, __instance);
+            if (__instance.gameObject.name == "FPS Camera")
+            {
+                AmandsGraphicsPlugin.AmandsGraphicsClassComponent.GraphicsMode = false;
+                OnEnableASync(__instance);
+            }
+        }
+        private async static void OnEnableASync(PrismEffects instance)
+        {
+            await Task.Delay(100);
+            AmandsGraphicsPlugin.AmandsGraphicsClassComponent.ActivateAmandsGraphics(instance.gameObject, instance);
         }
     }
     public class AmandsGraphicsOpticPatch : ModulePatch
@@ -961,6 +1019,173 @@ namespace AmandsGraphics
                                 volumetricLight.VolumetricMaterial.SetVector("_VolumetricLight", new Vector4(volumetricLight.ScatteringCoef, volumetricLight.ExtinctionCoef, AmandsGraphicsPlugin.FlashlightRange.Value, 1f - volumetricLight.SkyboxExtinctionCoef));
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+    public class AmandsGraphicsFastBlurPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(FastBlur).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref FastBlur __instance)
+        {
+            if (__instance.gameObject.name == "FPS Camera")
+            {
+                AmandsGraphicsClass.fastBlur = __instance;
+                PostProcessLayer FPSCameraPostProcessLayer = __instance.gameObject.GetComponent<PostProcessLayer>();
+                if (FPSCameraPostProcessLayer != null)
+                {
+                    AmandsGraphicsClass.FPSCameraChromaticAberration = Traverse.Create(FPSCameraPostProcessLayer).Field("m_Bundles").GetValue<Dictionary<Type, PostProcessBundle>>()[typeof(UnityEngine.Rendering.PostProcessing.ChromaticAberration)].settings as UnityEngine.Rendering.PostProcessing.ChromaticAberration;
+                    AmandsGraphicsClass.FPSCameraChromaticAberration.enabled.value = false;
+                }
+            }
+        }
+    }
+    public class AmandsGraphicsMethod_7Patch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(EffectsController).GetMethod("method_7", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref EffectsController __instance)
+        {
+            if (AmandsGraphicsClass.fastBlur != null && AmandsGraphicsPlugin.HealthEffectHit.Value == EEnabledFeature.On)
+            {
+                AmandsGraphicsClass.fastBlur.enabled = false;
+            }
+        }
+    }
+    public class AmandsGraphicsFastBlurHitPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(FastBlur).GetMethod("Hit", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref FastBlur __instance, float power)
+        {
+            if (AmandsGraphicsPlugin.HealthEffectHit.Value == EEnabledFeature.On)
+            {
+                AmandsGraphicsPlugin.AmandsGraphicsClassComponent.AmandsGraphicsHitEffect(power);
+            }
+        }
+    }
+    public class AmandsBattleUIScreenPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(EFT.UI.BattleUIScreen).GetMethod("Show", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref EFT.UI.BattleUIScreen __instance)
+        {
+            if (AmandsGraphicsClass.ActiveUIScreen == __instance.gameObject) return;
+            AmandsGraphicsClass.ActiveUIScreen = __instance.gameObject;
+            AmandsGraphicsClass.DestroyGameObjects();
+            AmandsGraphicsClass.CreateGameObjects(__instance.transform);
+        }
+    }
+    public class AmandsEffectsControllerPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return typeof(EffectsController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref EffectsController __instance)
+        {
+            if (AmandsGraphicsPlugin.PainKillerEffectType == null)
+            {
+                object EffectsList = Traverse.Create(__instance).Field("list_0").GetValue<object>();
+                object[] EffectsListItems = Traverse.Create(EffectsList).Field("_items").GetValue<object[]>();
+                if (EffectsListItems != null)
+                {
+                    foreach (object Effect in EffectsListItems)
+                    {
+                        ChromaticAberration chromaticAberration_0 = Traverse.Create(Effect).Field("chromaticAberration_0").GetValue<ChromaticAberration>();
+                        CC_Sharpen cc_Sharpen_0 = Traverse.Create(Effect).Field("cc_Sharpen_0").GetValue<CC_Sharpen>();
+                        if (chromaticAberration_0 != null && cc_Sharpen_0 != null)
+                        {
+                            AmandsGraphicsPlugin.PainKillerEffectType = Effect.GetType();
+                            new AmandsPainkillerAddEffectPatch().Enable();
+                            new AmandsPainkillerDeleteEffectPatch().Enable();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    public class AmandsPainkillerAddEffectPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return AmandsGraphicsPlugin.PainKillerEffectType.GetMethod("AddEffect", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref object __instance)
+        {
+            if (AmandsGraphicsPlugin.HealthEffectPainkiller.Value == EEnabledFeature.On)
+            {
+                List<IEffect> ActiveEffects = Traverse.Create(__instance).Field("ActiveEffects").GetValue<List<IEffect>>();
+                if (ActiveEffects != null)
+                {
+                    bool bool_1 = Traverse.Create(__instance).Field("bool_1").GetValue<bool>();
+                    float float_2 = Traverse.Create(__instance).Field("float_2").GetValue<float>();
+
+                    float maxEffectValue;
+                    if (ActiveEffects.Count <= 0)
+                    {
+                        maxEffectValue = 0f;
+                    }
+                    else
+                    {
+                        maxEffectValue = Mathf.Min(0.425f * AmandsGraphicsPlugin.PainkillerSaturation.Value, 1f);
+                    }
+                    Traverse.Create(__instance).Field("MaxEffectValue").SetValue(maxEffectValue);
+                    if (bool_1)
+                    {
+                        Traverse.Create(__instance).Field("float_3").SetValue((ActiveEffects.Count > 0) ? 0.015f * AmandsGraphicsPlugin.PainkillerCAIntensity.Value : float_2);
+                    }
+                }
+            }
+        }
+    }
+    public class AmandsPainkillerDeleteEffectPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return AmandsGraphicsPlugin.PainKillerEffectType.GetMethod("DeleteEffect", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref object __instance)
+        {
+            if (AmandsGraphicsPlugin.HealthEffectPainkiller.Value == EEnabledFeature.On)
+            {
+                List<IEffect> ActiveEffects = Traverse.Create(__instance).Field("ActiveEffects").GetValue<List<IEffect>>();
+                if (ActiveEffects != null)
+                {
+                    bool bool_1 = Traverse.Create(__instance).Field("bool_1").GetValue<bool>();
+                    float float_2 = Traverse.Create(__instance).Field("float_2").GetValue<float>();
+
+                    float maxEffectValue;
+                    if (ActiveEffects.Count <= 0)
+                    {
+                        maxEffectValue = 0f;
+                    }
+                    else
+                    {
+                        maxEffectValue = Mathf.Min(0.425f * AmandsGraphicsPlugin.PainkillerSaturation.Value, 1f);
+                    }
+                    Traverse.Create(__instance).Field("MaxEffectValue").SetValue(maxEffectValue);
+                    if (bool_1)
+                    {
+                        Traverse.Create(__instance).Field("float_3").SetValue((ActiveEffects.Count > 0) ? 0.015f * AmandsGraphicsPlugin.PainkillerCAIntensity.Value : float_2);
                     }
                 }
             }
