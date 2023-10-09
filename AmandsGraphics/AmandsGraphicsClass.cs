@@ -13,6 +13,8 @@ using EFT.InventoryLogic;
 using System.Reflection;
 using EFT.UI;
 using Comfort.Common;
+using UnityEngine.UI;
+using TMPro;
 
 namespace AmandsGraphics
 {
@@ -33,6 +35,13 @@ namespace AmandsGraphics
         //public static OpticSight opticSight;
         public static SightComponent sightComponent;
         public static Transform backLens;
+
+        public static GameObject ActiveUIScreen;
+        private static GameObject AmandsToggleTextUIGameObject;
+        private static RectTransform AmandsToggleTextUITransform;
+        private static VerticalLayoutGroup AmandsToggleTextUIVerticalLayoutGroup;
+        private static GameObject AmandsToggleTextGameObject;
+        private static AmandsToggleText amandsToggleText;
 
         private static bool SurroundDepthOfField = false;
         private static bool UIDepthOfField = false;
@@ -69,9 +78,16 @@ namespace AmandsGraphics
         private static AnimationCurve ApertureAnimationCurve;
         public static bool HoldingBreath = false;
 
+        public static AmandsHitEffectClass amandsHitEffectClass;
+        public static FastBlur fastBlur;
+        public static UnityEngine.Rendering.PostProcessing.ChromaticAberration FPSCameraChromaticAberration;
+        public static float ChromaticAberrationAnimation = 0.0f;
+        public static float ChromaticAberrationIntensity = 0.0f;
+
         private static WeatherController weatherController;
         private static ToDController toDController;
         private static TOD_Sky tOD_Sky;
+        private static object mBOIT_Scattering;
         private static CC_Sharpen FPSCameraCC_Sharpen;
         private static Dictionary<BloomAndFlares, float> FPSCameraBloomAndFlares = new Dictionary<BloomAndFlares, float>();
         private static PrismEffects FPSCameraPrismEffects;
@@ -93,6 +109,7 @@ namespace AmandsGraphics
         private static float defaultrampOffsetG;
         private static float defaultrampOffsetB;
         private static float defaultZeroLevel;
+        private static float defaultMBOITZeroLevel;
         private static bool defaultFPSCameraSharpen;
         private static bool defaultFPSCameraWeaponDepthOfField;
         private static float defaultFPSCameraWeaponDepthOfFieldAperture;
@@ -148,6 +165,9 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.HBAOIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HBAOSaturation.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HBAOAlbedoMultiplier.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LabsHBAOIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LabsHBAOSaturation.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.LabsHBAOAlbedoMultiplier.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.SurroundDepthOfField.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.DOFKernelSize.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.UIDepthOfField.SettingChanged += SettingsUpdated;
@@ -189,16 +209,18 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.ReserveMysticalGlowIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.ShorelineMysticalGlowIntensity.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.HealthEffectHit.SettingChanged += SettingsUpdated;
+
             AmandsGraphicsPlugin.Brightness.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.Tonemap.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.useLut.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.UseBSGLUT.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.BloomIntensity.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.CC_Vintage.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.CC_Sharpen.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.CustomGlobalFog.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.UseBSGCC_Vintage.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.UseBSGCC_Sharpen.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.UseBSGCustomGlobalFog.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomGlobalFogIntensity.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.GlobalFog.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.ColorCorrectionCurves.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.UseBSGGlobalFog.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.UseBSGColorCorrectionCurves.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LightsUseLinearIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.SunColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.SkyColor.SettingChanged += SettingsUpdated;
@@ -308,6 +330,7 @@ namespace AmandsGraphics
                     GraphicsMode = true;
                     UpdateAmandsGraphics();
                 }
+                AmandsToggleText(GraphicsMode);
             }
             if (Input.GetKeyDown(AmandsGraphicsPlugin.GraphicsToggle.Value.MainKey) && Input.GetKey(KeyCode.LeftShift) && FPSCamera != null && GraphicsMode)
             {
@@ -368,22 +391,22 @@ namespace AmandsGraphics
                         UpdateAmandsGraphics();
                         break;
                     case EDebugMode.useLut:
-                        AmandsGraphicsPlugin.useLut.Value = !AmandsGraphicsPlugin.useLut.Value;
+                        AmandsGraphicsPlugin.UseBSGLUT.Value = !AmandsGraphicsPlugin.UseBSGLUT.Value;
                         break;
                     case EDebugMode.CC_Vintage:
-                        AmandsGraphicsPlugin.CC_Vintage.Value = !AmandsGraphicsPlugin.CC_Vintage.Value;
+                        AmandsGraphicsPlugin.UseBSGCC_Vintage.Value = !AmandsGraphicsPlugin.UseBSGCC_Vintage.Value;
                         break;
                     case EDebugMode.CC_Sharpen:
-                        AmandsGraphicsPlugin.CC_Sharpen.Value = !AmandsGraphicsPlugin.CC_Sharpen.Value;
+                        AmandsGraphicsPlugin.UseBSGCC_Sharpen.Value = !AmandsGraphicsPlugin.UseBSGCC_Sharpen.Value;
                         break;
                     case EDebugMode.CustomGlobalFog:
-                        AmandsGraphicsPlugin.CustomGlobalFog.Value = !AmandsGraphicsPlugin.CustomGlobalFog.Value;
+                        AmandsGraphicsPlugin.UseBSGCustomGlobalFog.Value = !AmandsGraphicsPlugin.UseBSGCustomGlobalFog.Value;
                         break;
                     case EDebugMode.GlobalFog:
-                        AmandsGraphicsPlugin.GlobalFog.Value = !AmandsGraphicsPlugin.GlobalFog.Value;
+                        AmandsGraphicsPlugin.UseBSGGlobalFog.Value = !AmandsGraphicsPlugin.UseBSGGlobalFog.Value;
                         break;
                     case EDebugMode.ColorCorrectionCurves:
-                        AmandsGraphicsPlugin.ColorCorrectionCurves.Value = !AmandsGraphicsPlugin.ColorCorrectionCurves.Value;
+                        AmandsGraphicsPlugin.UseBSGColorCorrectionCurves.Value = !AmandsGraphicsPlugin.UseBSGColorCorrectionCurves.Value;
                         break;
                     case EDebugMode.LightsUseLinearIntensity:
                         AmandsGraphicsPlugin.LightsUseLinearIntensity.Value = !AmandsGraphicsPlugin.LightsUseLinearIntensity.Value;
@@ -673,6 +696,14 @@ namespace AmandsGraphics
                             defaultFPSCameraGlobalFog = FPSCameraGlobalFog.enabled;
                             break;
                         }
+                        if (component.ToString() == "FPS Camera (MBOIT_Scattering)")
+                        {
+                            mBOIT_Scattering = component;
+                            if (mBOIT_Scattering != null)
+                            {
+                                defaultMBOITZeroLevel = Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").GetValue<float>();
+                            }
+                        }
                     }
                     FPSCameraColorCorrectionCurves = FPSCamera.GetComponent<ColorCorrectionCurves>();
                     if (FPSCameraColorCorrectionCurves != null)
@@ -710,11 +741,17 @@ namespace AmandsGraphics
                     }
                     GraphicsMode = true;
                     UpdateAmandsGraphics();
+                    if ((AmandsGraphicsPlugin.SurroundDepthOfField.Value != EDepthOfField.Off || AmandsGraphicsPlugin.UIDepthOfField.Value != EUIDepthOfField.Off || AmandsGraphicsPlugin.OpticDepthOfField.Value != EDepthOfField.Off) && Graphics.activeTier == GraphicsTier.Tier2)
+                    {
+                        PreloaderUI.Instance.CloseErrorScreen();
+                        PreloaderUI.Instance.ShowErrorScreen("High-Quality Color is Off", "Enable High-Quality Color on Graphics Settings for SurroundDOF, UIDOF and OpticDOF to work as intended");
+                    }
+                    // Needs bug detection
+                    /*if (false)
+                    {
+                        NotificationManagerClass.DisplayMessageNotification("Motion Blur needs anti-aliasing set to TAA", EFT.Communications.ENotificationDurationType.Long, EFT.Communications.ENotificationIconType.Alert, Color.red);
+                    }*/
                 }
-            }
-            if (localPlayer == null)
-            {
-                localPlayer = FindObjectOfType<LocalPlayer>();
             }
         }
         public void ActivateAmandsOpticDepthOfField(GameObject baseopticcamera)
@@ -737,8 +774,67 @@ namespace AmandsGraphics
                 }
             }
         }
+        public void AmandsGraphicsHitEffect(float power)
+        {
+            if (FPSCameraChromaticAberration != null)
+            {
+                ChromaticAberrationAnimation = 1f;
+                ChromaticAberrationIntensity = (power / AmandsGraphicsPlugin.HitCAPower.Value) * AmandsGraphicsPlugin.HitCAIntensity.Value;
+                FPSCameraChromaticAberration.intensity.value = ChromaticAberrationIntensity;
+                FPSCameraChromaticAberration.enabled.value = true;
+            }
+        }
         public void UpdateAmandsGraphics()
         {
+            if (AmandsGraphicsPlugin.HealthEffectHit.Value == EEnabledFeature.On)
+            {
+                if (amandsHitEffectClass == null)
+                {
+                    amandsHitEffectClass = AmandsGraphicsPlugin.Hook.AddComponent<AmandsHitEffectClass>();
+                }
+            }
+            else
+            {
+                if (amandsHitEffectClass != null)
+                {
+                    Destroy(amandsHitEffectClass);
+                    ChromaticAberrationAnimation = 0f;
+                    if (FPSCameraChromaticAberration != null)
+                    {
+                        FPSCameraChromaticAberration.intensity.value = 0f;
+                        FPSCameraChromaticAberration.enabled.value = false;
+                    }
+                }
+            }
+            if (mBOIT_Scattering != null)
+            {
+                switch (scene)
+                {
+                    case "City_Scripts":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.StreetsFogLevel.Value);
+                        break;
+                    case "Laboratory_Scripts":
+                        break;
+                    case "custom_Light":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value);
+                        break;
+                    case "Lighthouse_Abadonned_pier":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value);
+                        break;
+                    case "Shopping_Mall_Terrain":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value);
+                        break;
+                    case "woods_combined":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value);
+                        break;
+                    case "Reserve_Base_DesignStuff":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.ReserveFogLevel.Value);
+                        break;
+                    case "shoreline_scripts":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.ShorelineFogLevel.Value);
+                        break;
+                }
+            }
             if (AmandsGraphicsPlugin.Flashlight.Value == EEnabledFeature.On)
             {
                 foreach (KeyValuePair<Light, float> registeredLight in registeredLights)
@@ -839,7 +935,7 @@ namespace AmandsGraphics
             {
                 if (toDController != null)
                 {
-                    NVGAmbientContrast.RemoveKey(0);
+                    if (scene != "Laboratory_Scripts") NVGAmbientContrast.RemoveKey(0);
                     switch (scene)
                     {
                         case "Shopping_Mall_Terrain":
@@ -870,7 +966,7 @@ namespace AmandsGraphics
                             break;
                     }
                 }
-                if (tOD_Sky != null)
+                if (tOD_Sky != null && tOD_Sky.Night != null)
                 {
                     tOD_Sky.Night.LightIntensity = defaultLightIntensity * AmandsGraphicsPlugin.NVGMoonLightIntensity.Value;
                 }
@@ -905,9 +1001,19 @@ namespace AmandsGraphics
             {
                 if (AmandsGraphicsPlugin.HBAO.Value == EEnabledFeature.On)
                 {
-                    FPSCameraHBAOAOSettings.intensity = AmandsGraphicsPlugin.HBAOIntensity.Value;
-                    FPSCameraHBAOColorBleedingSettings.saturation = AmandsGraphicsPlugin.HBAOSaturation.Value;
-                    FPSCameraHBAOColorBleedingSettings.albedoMultiplier = AmandsGraphicsPlugin.HBAOAlbedoMultiplier.Value;
+                    switch (scene)
+                    {
+                        case "Laboratory_Scripts":
+                            FPSCameraHBAOAOSettings.intensity = AmandsGraphicsPlugin.LabsHBAOIntensity.Value;
+                            FPSCameraHBAOColorBleedingSettings.saturation = AmandsGraphicsPlugin.LabsHBAOSaturation.Value;
+                            FPSCameraHBAOColorBleedingSettings.albedoMultiplier = AmandsGraphicsPlugin.LabsHBAOAlbedoMultiplier.Value;
+                            break;
+                        default:
+                            FPSCameraHBAOAOSettings.intensity = AmandsGraphicsPlugin.HBAOIntensity.Value;
+                            FPSCameraHBAOColorBleedingSettings.saturation = AmandsGraphicsPlugin.HBAOSaturation.Value;
+                            FPSCameraHBAOColorBleedingSettings.albedoMultiplier = AmandsGraphicsPlugin.HBAOAlbedoMultiplier.Value;
+                            break;
+                    }
                     FPSCameraHBAO.aoSettings = FPSCameraHBAOAOSettings;
                     FPSCameraHBAO.colorBleedingSettings = FPSCameraHBAOColorBleedingSettings;
                 }
@@ -952,7 +1058,7 @@ namespace AmandsGraphics
                             break;
                     }
                 }
-                FPSCameraPrismEffects.useLut = AmandsGraphicsPlugin.useLut.Value ? defaultuseLut : false;
+                FPSCameraPrismEffects.useLut = AmandsGraphicsPlugin.UseBSGLUT.Value ? defaultuseLut : false;
             }
             foreach (var BloomAndFlares in FPSCameraBloomAndFlares)
             {
@@ -1125,11 +1231,11 @@ namespace AmandsGraphics
             }
             if (FPSCameraCC_Vintage != null)
             {
-                FPSCameraCC_Vintage.enabled = AmandsGraphicsPlugin.CC_Vintage.Value;
+                FPSCameraCC_Vintage.enabled = AmandsGraphicsPlugin.UseBSGCC_Vintage.Value;
             }
             if (FPSCameraCC_Sharpen != null)
             {
-                if (AmandsGraphicsPlugin.CC_Sharpen.Value)
+                if (AmandsGraphicsPlugin.UseBSGCC_Sharpen.Value)
                 {
                     FPSCameraCC_Sharpen.enabled = defaultFPSCameraSharpen;
                     FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
@@ -1146,7 +1252,7 @@ namespace AmandsGraphics
             }
             if (FPSCameraCustomGlobalFog != null)
             {
-                if (AmandsGraphicsPlugin.CustomGlobalFog.Value)
+                if (AmandsGraphicsPlugin.UseBSGCustomGlobalFog.Value)
                 {
                     FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
                     FPSCameraCustomGlobalFog.FuncStart = 1f;
@@ -1161,11 +1267,11 @@ namespace AmandsGraphics
             }
             if (FPSCameraGlobalFog != null)
             {
-                FPSCameraGlobalFog.enabled = AmandsGraphicsPlugin.GlobalFog.Value;
+                FPSCameraGlobalFog.enabled = AmandsGraphicsPlugin.UseBSGGlobalFog.Value;
             }
             if (FPSCameraColorCorrectionCurves != null)
             {
-                FPSCameraColorCorrectionCurves.enabled = AmandsGraphicsPlugin.ColorCorrectionCurves.Value;
+                FPSCameraColorCorrectionCurves.enabled = AmandsGraphicsPlugin.UseBSGColorCorrectionCurves.Value;
             }
             // NVG FIX
             if (NVG && AmandsGraphicsPlugin.NVGOriginalColor.Value)
@@ -1197,6 +1303,10 @@ namespace AmandsGraphics
         }
         private void ResetGraphics()
         {
+            if (mBOIT_Scattering != null)
+            {
+                Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel);
+            }
             foreach (KeyValuePair<Light,float> changedLight in registeredLights)
             {
                 changedLight.Key.range = changedLight.Value;
@@ -1467,10 +1577,50 @@ namespace AmandsGraphics
         }
         private void SettingsUpdated(object sender, EventArgs e)
         {
+            if ((AmandsGraphicsPlugin.SurroundDepthOfField.Value != EDepthOfField.Off || AmandsGraphicsPlugin.UIDepthOfField.Value != EUIDepthOfField.Off || AmandsGraphicsPlugin.OpticDepthOfField.Value != EDepthOfField.Off) && Graphics.activeTier == GraphicsTier.Tier2)
+            {
+                PreloaderUI.Instance.CloseErrorScreen();
+                PreloaderUI.Instance.ShowErrorScreen("High-Quality Color is Off", "Enable High-Quality Color on Graphics Settings for SurroundDOF, UIDOF and OpticDOF to work as intended");
+            }
             if (GraphicsMode)
             {
                 UpdateAmandsGraphics();
             }
+        }
+        public void AmandsToggleText(bool Enabled)
+        {
+            if (AmandsToggleTextUIGameObject == null) return;
+            if (amandsToggleText == null)
+            {
+                AmandsToggleTextGameObject = new GameObject("AmandsToggleTextGameObject");
+                AmandsToggleTextGameObject.transform.SetParent(AmandsToggleTextUIGameObject.transform);
+                amandsToggleText = AmandsToggleTextGameObject.AddComponent<AmandsToggleText>();
+                amandsToggleText.text = "AMANDS " + (Enabled ? "<b>ON</b>" : "<b>OFF</b>");
+            }
+            else
+            {
+                amandsToggleText.UpdateText("AMANDS " + (Enabled ? "<b>ON</b>" : "<b>OFF</b>"));
+            }
+        }
+        public static void CreateGameObjects(Transform parent)
+        {
+            AmandsToggleTextUIGameObject = new GameObject("killList");
+            AmandsToggleTextUITransform = AmandsToggleTextUIGameObject.AddComponent<RectTransform>();
+            AmandsToggleTextUIGameObject.transform.SetParent(parent);
+            AmandsToggleTextUITransform.anchorMin = Vector2.zero;
+            AmandsToggleTextUITransform.anchorMax = Vector2.zero;
+            AmandsToggleTextUITransform.sizeDelta = new Vector2(0f, 0f);
+            AmandsToggleTextUIVerticalLayoutGroup = AmandsToggleTextUIGameObject.AddComponent<VerticalLayoutGroup>();
+            AmandsToggleTextUIVerticalLayoutGroup.childControlHeight = false;
+            ContentSizeFitter contentSizeFitter = AmandsToggleTextUIGameObject.AddComponent<ContentSizeFitter>();
+            contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            AmandsToggleTextUITransform.localPosition = new Vector2((Screen.width / 2) - 100, -420.0f);
+            AmandsToggleTextUITransform.pivot = new Vector2(1f, 0f);
+        }
+        public static void DestroyGameObjects()
+        {
+            if (AmandsToggleTextUIGameObject != null) Destroy(AmandsToggleTextUIGameObject);
         }
     }
     public enum EEnabledFeature
@@ -1557,6 +1707,100 @@ namespace AmandsGraphics
         LightsUseLinearIntensity,
         SunColor,
         SkyColor
+    }
+    public class AmandsHitEffectClass : MonoBehaviour
+    {
+        public void Start()
+        {
+        }
+        public void Update()
+        {
+            if (AmandsGraphicsClass.ChromaticAberrationAnimation > 0)
+            {
+                AmandsGraphicsClass.ChromaticAberrationAnimation -= Time.deltaTime / AmandsGraphicsPlugin.HitCASpeed.Value;
+                if (AmandsGraphicsClass.FPSCameraChromaticAberration != null)
+                {
+                    AmandsGraphicsClass.FPSCameraChromaticAberration.intensity.value = Mathf.Lerp(0f, AmandsGraphicsClass.ChromaticAberrationIntensity, AmandsGraphicsClass.ChromaticAberrationAnimation);
+                    AmandsGraphicsClass.FPSCameraChromaticAberration.enabled.value = AmandsGraphicsClass.ChromaticAberrationAnimation > 0.0f;
+                }
+            }
+        }
+    }
+    public class AmandsToggleText : MonoBehaviour
+    {
+        public TMP_Text tMP_Text;
+        public string text = "";
+        public Color color = new Color(0.84f, 0.88f, 0.95f, 0.69f);
+        public int fontSize = 26;
+        public float outlineWidth = 0.01f;
+        public FontStyles fontStyles = FontStyles.SmallCaps;
+        public TextAlignmentOptions textAlignmentOptions = TextAlignmentOptions.Right;
+        public float time = 2f;
+        public float lifeTime = 0f;
+        public float OpacitySpeed = 0.08f;
+        private float Opacity = 1f;
+        private float StartOpacity = 0f;
+        private bool UpdateOpacity = false;
+        private bool UpdateStartOpacity = false;
+
+        public void Start()
+        {
+            tMP_Text = gameObject.AddComponent<TextMeshProUGUI>();
+            if (tMP_Text != null)
+            {
+                tMP_Text.text = text;
+                tMP_Text.color = color;
+                tMP_Text.fontSize = fontSize;
+                tMP_Text.outlineWidth = outlineWidth;
+                tMP_Text.fontStyle = fontStyles;
+                tMP_Text.alignment = textAlignmentOptions;
+                tMP_Text.alpha = 0f;
+                UpdateStartOpacity = true;
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+        public void UpdateText(string Text)
+        {
+            text = Text;
+            if (tMP_Text != null)
+            {
+                tMP_Text.text = Text;
+            }
+            lifeTime = 0f;
+            if (UpdateOpacity && tMP_Text != null)
+            {
+                Opacity = 1f;
+                tMP_Text.alpha = Opacity;
+                UpdateOpacity = false;
+            }
+        }
+        public void Update()
+        {
+            lifeTime += Time.deltaTime;
+            if (lifeTime > time)
+            {
+                UpdateOpacity = true;
+            }
+            if (UpdateOpacity && tMP_Text != null)
+            {
+                Opacity -= Math.Max(0.01f, OpacitySpeed);
+                tMP_Text.alpha = Opacity;
+                if (Opacity < 0)
+                {
+                    UpdateOpacity = false;
+                    UpdateStartOpacity = false;
+                    Destroy(gameObject);
+                }
+            }
+            else if (UpdateStartOpacity && StartOpacity < 1f && tMP_Text != null)
+            {
+                StartOpacity += OpacitySpeed * 2f;
+                tMP_Text.alpha = StartOpacity;
+            }
+        }
     }
 }
 
