@@ -19,12 +19,13 @@ using System.Threading.Tasks;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.3")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.5.4")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
         public static AmandsGraphicsClass AmandsGraphicsClassComponent;
         public static Type PainKillerEffectType;
+        public static Type PainEffectType;
 
         public static ConfigEntry<KeyboardShortcut> GraphicsToggle { get; set; }
         public static ConfigEntry<EDebugMode> DebugMode { get; set; }
@@ -105,6 +106,7 @@ namespace AmandsGraphics
 
         public static ConfigEntry<EEnabledFeature> MysticalGlow { get; set; }
         public static ConfigEntry<float> MysticalGlowIntensity { get; set; }
+        public static ConfigEntry<float> GroundZeroMysticalGlowIntensity { get; set; }
         public static ConfigEntry<float> StreetsMysticalGlowIntensity { get; set; }
         public static ConfigEntry<float> CustomsMysticalGlowIntensity { get; set; }
         public static ConfigEntry<float> LighthouseMysticalGlowIntensity { get; set; }
@@ -120,7 +122,11 @@ namespace AmandsGraphics
 
         public static ConfigEntry<EEnabledFeature> HealthEffectPainkiller { get; set; }
         public static ConfigEntry<float> PainkillerSaturation { get; set; }
-        public static ConfigEntry<float> PainkillerCAIntensity { get; set; }
+        //public static ConfigEntry<float> PainkillerCAIntensity { get; set; }
+        public static ConfigEntry<EEnabledFeature> HealthEffectPain { get; set; }
+        public static ConfigEntry<float> PainRadialBlur { get; set; }
+        public static ConfigEntry<float> SunMeshBrightness { get; set; }
+        public static ConfigEntry<float> SkyBrightness { get; set; }
 
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
@@ -139,6 +145,7 @@ namespace AmandsGraphics
         public static ConfigEntry<string> SavePreset { get; set; }
         public static ConfigEntry<string> LoadPreset { get; set; }
 
+        public static ConfigEntry<float> GroundZeroFogLevel { get; set; }
         public static ConfigEntry<float> StreetsFogLevel { get; set; }
         public static ConfigEntry<float> CustomsFogLevel { get; set; }
         public static ConfigEntry<float> LighthouseFogLevel { get; set; }
@@ -147,6 +154,7 @@ namespace AmandsGraphics
         public static ConfigEntry<float> ReserveFogLevel { get; set; }
         public static ConfigEntry<float> ShorelineFogLevel { get; set; }
 
+        public static ConfigEntry<ETonemap> GroundZeroTonemap { get; set; }
         public static ConfigEntry<ETonemap> StreetsTonemap { get; set; }
         public static ConfigEntry<ETonemap> LabsTonemap { get; set; }
         public static ConfigEntry<ETonemap> CustomsTonemap { get; set; }
@@ -159,6 +167,8 @@ namespace AmandsGraphics
         public static ConfigEntry<ETonemap> ShorelineTonemap { get; set; }
         public static ConfigEntry<ETonemap> HideoutTonemap { get; set; }
 
+        public static ConfigEntry<Vector3> GroundZeroACES { get; set; }
+        public static ConfigEntry<Vector3> GroundZeroACESS { get; set; }
         public static ConfigEntry<Vector3> StreetsACES { get; set; }
         public static ConfigEntry<Vector3> StreetsACESS { get; set; }
         public static ConfigEntry<Vector3> LabsACES { get; set; }
@@ -182,6 +192,8 @@ namespace AmandsGraphics
         public static ConfigEntry<Vector3> HideoutACES { get; set; }
         public static ConfigEntry<Vector3> HideoutACESS { get; set; }
 
+        public static ConfigEntry<Vector3> GroundZeroFilmic { get; set; }
+        public static ConfigEntry<Vector3> GroundZeroFilmicS { get; set; }
         public static ConfigEntry<Vector3> StreetsFilmic { get; set; }
         public static ConfigEntry<Vector3> StreetsFilmicS { get; set; }
         public static ConfigEntry<Vector3> LabsFilmic { get; set; }
@@ -252,7 +264,7 @@ namespace AmandsGraphics
             MotionBlurSampleCount = Config.Bind(AmandsCinematic, "MotionBlur SampleCount", 10, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 660, IsAdvanced = true }));
             MotionBlurShutterAngle = Config.Bind(AmandsCinematic, "MotionBlur ShutterAngle", 270f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 650, IsAdvanced = true }));
 
-            HBAO = Config.Bind(AmandsCinematic, "HBAO", EEnabledFeature.On, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 640 }));
+            HBAO = Config.Bind(AmandsCinematic, "HBAO", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 640 }));
             HBAOIntensity = Config.Bind(AmandsCinematic, "HBAO Intensity", 1.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 630, IsAdvanced = true }));
             HBAOSaturation = Config.Bind(AmandsCinematic, "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 620, IsAdvanced = true }));
             HBAOAlbedoMultiplier = Config.Bind(AmandsCinematic, "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 610, IsAdvanced = true }));
@@ -304,7 +316,7 @@ namespace AmandsGraphics
             FlashlightExtinctionCoef = Config.Bind(AmandsExperimental, "Flashlight ExtinctionCoef", 0.2f, new ConfigDescription("Volumetric extinction coefficient", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 150 }));
 
             NVG = Config.Bind(AmandsExperimental, "NVG", EEnabledFeature.On, new ConfigDescription("EXPERIMENTAL", null, new ConfigurationManagerAttributes { Order = 150 }));
-            NVGTonemap = Config.Bind(AmandsExperimental, "NVG Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 142, IsAdvanced = true }));
+            NVGTonemap = Config.Bind(AmandsExperimental, "NVG Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 142, IsAdvanced = true }));
             NVGAmbientContrast = Config.Bind(AmandsExperimental, "NVG AmbientContrast", 1f, new ConfigDescription("", new AcceptableValueRange<float>(1f, 1.5f), new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             NVGNoiseIntensity = Config.Bind(AmandsExperimental, "NVG Noise Intensity", 0.8f, new ConfigDescription("", new AcceptableValueRange<float>(0f, 2f), new ConfigurationManagerAttributes { Order = 130 }));
             NVGOriginalColor = Config.Bind(AmandsExperimental, "NVG Original Color", true, new ConfigDescription("Enables back all default color filters", null, new ConfigurationManagerAttributes { Order = 120 }));
@@ -324,10 +336,14 @@ namespace AmandsGraphics
 
             HealthEffectPainkiller = Config.Bind(AmandsExperimental, "HealthEffect Painkiller", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 8 }));
             PainkillerSaturation = Config.Bind(AmandsExperimental, "Painkiller Saturation", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 6 }));
-            PainkillerCAIntensity = Config.Bind(AmandsExperimental, "Painkiller ChromaticAberration", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 4 }));
+            //PainkillerCAIntensity = Config.Bind(AmandsExperimental, "Painkiller ChromaticAberration", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 4 }));
+            HealthEffectPain = Config.Bind(AmandsExperimental, "HealthEffect Pain", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 4 }));
+            PainRadialBlur = Config.Bind(AmandsExperimental, "Pain RadialBlur", 0.25f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 1.0f), new ConfigurationManagerAttributes { Order = 3 }));
+            SunMeshBrightness = Config.Bind(AmandsExperimental, "SunMeshBrightness", 2.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.25f, 3.0f), new ConfigurationManagerAttributes { Order = 2 }));
+            SkyBrightness = Config.Bind(AmandsExperimental, "SkyBrightness", 1.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.1f, 2.0f), new ConfigurationManagerAttributes { Order = 1 }));
 
             Brightness = Config.Bind(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 340 }));
-            Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
+            Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
             UseBSGLUT = Config.Bind(AmandsFeatures, "Use BSG LUT", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 320, IsAdvanced = true }));
             BloomIntensity = Config.Bind(AmandsFeatures, "Bloom Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 310 }));
             UseBSGCC_Vintage = Config.Bind(AmandsFeatures, "Use BSG CC_Vintage", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 300, IsAdvanced = true }));
@@ -340,32 +356,40 @@ namespace AmandsGraphics
             SunColor = Config.Bind(AmandsFeatures, "SunColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 230 }));
             SkyColor = Config.Bind(AmandsFeatures, "SkyColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 220 }));
 
+            GroundZeroFogLevel = Config.Bind("GroundZero", "Fog Level", -250.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 210 }));
+            GroundZeroTonemap = Config.Bind("GroundZero", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 209 }));
+            GroundZeroACES = Config.Bind("GroundZero", "ACES", new Vector3(25, 0.2f, 25), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 208, IsAdvanced = true }));
+            GroundZeroACESS = Config.Bind("GroundZero", "ACESS", new Vector3(0, 1.1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 200, IsAdvanced = true }));
+            GroundZeroFilmic = Config.Bind("GroundZero", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 190, IsAdvanced = true }));
+            GroundZeroFilmicS = Config.Bind("GroundZero", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 180, IsAdvanced = true }));
+            GroundZeroMysticalGlowIntensity = Config.Bind("GroundZero", "MysticalGlow Intensity", 0.75f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 170, IsAdvanced = true }));
+
             StreetsFogLevel = Config.Bind("Streets", "Fog Level", -250.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            StreetsTonemap = Config.Bind("Streets", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            StreetsTonemap = Config.Bind("Streets", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             StreetsACES = Config.Bind("Streets", "ACES", new Vector3(25, 0.2f, 25), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             StreetsACESS = Config.Bind("Streets", "ACESS", new Vector3(0, 1.1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            StreetsFilmic = Config.Bind("Streets", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            StreetsFilmicS = Config.Bind("Streets", "FilmicS", new Vector3(0, 0.35f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            StreetsFilmic = Config.Bind("Streets", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            StreetsFilmicS = Config.Bind("Streets", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             StreetsMysticalGlowIntensity = Config.Bind("Streets", "MysticalGlow Intensity", 0.75f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
-            LabsTonemap = Config.Bind("Labs", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            LabsTonemap = Config.Bind("Labs", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             LabsACES = Config.Bind("Labs", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             LabsACESS = Config.Bind("Labs", "ACESS", new Vector3(0, 2, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            LabsFilmic = Config.Bind("Labs", "Filmic", new Vector3(2f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            LabsFilmicS = Config.Bind("Labs", "FilmicS", new Vector3(0, 0.5f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            LabsFilmic = Config.Bind("Labs", "Filmic", new Vector3(8f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            LabsFilmicS = Config.Bind("Labs", "FilmicS", new Vector3(0, 0.6f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             LabsHBAOIntensity = Config.Bind("Labs", "HBAO Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
             LabsHBAOSaturation = Config.Bind("Labs", "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 90, IsAdvanced = true }));
             LabsHBAOAlbedoMultiplier = Config.Bind("Labs", "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80, IsAdvanced = true }));
 
             CustomsFogLevel = Config.Bind("Customs", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            CustomsTonemap = Config.Bind("Customs", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            CustomsTonemap = Config.Bind("Customs", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             CustomsACES = Config.Bind("Customs", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             CustomsACESS = Config.Bind("Customs", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            CustomsFilmic = Config.Bind("Customs", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            CustomsFilmicS = Config.Bind("Customs", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            CustomsFilmic = Config.Bind("Customs", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            CustomsFilmicS = Config.Bind("Customs", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             CustomsMysticalGlowIntensity = Config.Bind("Customs", "MysticalGlow Intensity", 1.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
-            FactoryTonemap = Config.Bind("Factory", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
+            FactoryTonemap = Config.Bind("Factory", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
             FactoryACES = Config.Bind("Factory", "ACES", new Vector3(15, 1, 15), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
             FactoryACESS = Config.Bind("Factory", "ACESS", new Vector3(0, 1.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
             FactoryFilmic = Config.Bind("Factory", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
@@ -373,20 +397,20 @@ namespace AmandsGraphics
             FactorySkyColor = Config.Bind("Factory", "SkyColor", new Vector4(0.9f, 0.8f, 0.7f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             FactoryNVSkyColor = Config.Bind("Factory", "NVSkyColor", new Vector4(0.9f, 0.8f, 0.7f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
-            FactoryNightTonemap = Config.Bind("FactoryNight", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
+            FactoryNightTonemap = Config.Bind("FactoryNight", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
             FactoryNightACES = Config.Bind("FactoryNight", "ACES", new Vector3(10, -0.2f, 10), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
             FactoryNightACESS = Config.Bind("FactoryNight", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
-            FactoryNightFilmic = Config.Bind("FactoryNight", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            FactoryNightFilmicS = Config.Bind("FactoryNight", "FilmicS", new Vector3(0, 0.5f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            FactoryNightFilmic = Config.Bind("FactoryNight", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            FactoryNightFilmicS = Config.Bind("FactoryNight", "FilmicS", new Vector3(0, 0.8f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             FactoryNightSkyColor = Config.Bind("FactoryNight", "SkyColor", new Vector4(0.09f, 0.08f, 0.07f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             FactoryNightNVSkyColor = Config.Bind("FactoryNight", "NVSkyColor", new Vector4(0.5f, 0.5f, 0.5f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             LighthouseFogLevel = Config.Bind("Lighthouse", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            LighthouseTonemap = Config.Bind("Lighthouse", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            LighthouseTonemap = Config.Bind("Lighthouse", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             LighthouseACES = Config.Bind("Lighthouse", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             LighthouseACESS = Config.Bind("Lighthouse", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            LighthouseFilmic = Config.Bind("Lighthouse", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            LighthouseFilmicS = Config.Bind("Lighthouse", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            LighthouseFilmic = Config.Bind("Lighthouse", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            LighthouseFilmicS = Config.Bind("Lighthouse", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             LighthouseMysticalGlowIntensity = Config.Bind("Lighthouse", "MysticalGlow Intensity", 0.75f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             InterchangeNightAmbientContrast = Config.Bind("Interchange", "Night AmbientAmbientContrast", 1.14f, new ConfigDescription("", new AcceptableValueRange<float>(1.1f, 1.15f), new ConfigurationManagerAttributes { Order = 170 }));
@@ -394,38 +418,38 @@ namespace AmandsGraphics
             InterchangeNVGNoiseIntensity = Config.Bind("Interchange", "NVG Noise Intensity", 0.25f, new ConfigDescription("", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 158 }));
             InterchangeNVGAmbientContrast = Config.Bind("Interchange", "NVG AmbientContrast", 1.1f, new ConfigDescription("", new AcceptableValueRange<float>(1f, 1.5f), new ConfigurationManagerAttributes { Order = 156 }));
             InterchangeNVGOriginalSkyColor = Config.Bind("Interchange", "NVG Original Sky Color", 0.7f, new ConfigDescription("Enables back the default sky color for NVG", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 154, IsAdvanced = true }));
-            InterchangeTonemap = Config.Bind("Interchange", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
-            InterchangeACES = Config.Bind("Interchange", "ACES", new Vector3(20, 3, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            InterchangeACESS = Config.Bind("Interchange", "ACESS", new Vector3(0.50f, 0.95f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            InterchangeFilmic = Config.Bind("Interchange", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            InterchangeFilmicS = Config.Bind("Interchange", "FilmicS", new Vector3(-0.01f, 0.17f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            InterchangeTonemap = Config.Bind("Interchange", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            InterchangeACES = Config.Bind("Interchange", "ACES", new Vector3(20, 0.2f, 18), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            InterchangeACESS = Config.Bind("Interchange", "ACESS", new Vector3(0, 1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            InterchangeFilmic = Config.Bind("Interchange", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            InterchangeFilmicS = Config.Bind("Interchange", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             InterchangeMysticalGlowIntensity = Config.Bind("Interchange", "MysticalGlow Intensity", 0.45f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             WoodsFogLevel = Config.Bind("Woods", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            WoodsTonemap = Config.Bind("Woods", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            WoodsTonemap = Config.Bind("Woods", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             WoodsACES = Config.Bind("Woods", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             WoodsACESS = Config.Bind("Woods", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            WoodsFilmic = Config.Bind("Woods", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            WoodsFilmicS = Config.Bind("Woods", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            WoodsFilmic = Config.Bind("Woods", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            WoodsFilmicS = Config.Bind("Woods", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             WoodsMysticalGlowIntensity = Config.Bind("Woods", "MysticalGlow Intensity", 1.25f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             ReserveFogLevel = Config.Bind("Reserve", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            ReserveTonemap = Config.Bind("Reserve", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            ReserveTonemap = Config.Bind("Reserve", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             ReserveACES = Config.Bind("Reserve", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             ReserveACESS = Config.Bind("Reserve", "ACESS", new Vector3(0, 0.85f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            ReserveFilmic = Config.Bind("Reserve", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            ReserveFilmicS = Config.Bind("Reserve", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            ReserveFilmic = Config.Bind("Reserve", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            ReserveFilmicS = Config.Bind("Reserve", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             ReserveMysticalGlowIntensity = Config.Bind("Reserve", "MysticalGlow Intensity", 0.75f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             ShorelineFogLevel = Config.Bind("Shoreline", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
-            ShorelineTonemap = Config.Bind("Shoreline", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
+            ShorelineTonemap = Config.Bind("Shoreline", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
             ShorelineACES = Config.Bind("Shoreline", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             ShorelineACESS = Config.Bind("Shoreline", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            ShorelineFilmic = Config.Bind("Shoreline", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            ShorelineFilmicS = Config.Bind("Shoreline", "FilmicS", new Vector3(0, 0.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            ShorelineFilmic = Config.Bind("Shoreline", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
+            ShorelineFilmicS = Config.Bind("Shoreline", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             ShorelineMysticalGlowIntensity = Config.Bind("Shoreline", "MysticalGlow Intensity", 0.5f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
-            HideoutTonemap = Config.Bind("Hideout", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
+            HideoutTonemap = Config.Bind("Hideout", "Tonemap", ETonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             HideoutACES = Config.Bind("Hideout", "ACES", new Vector3(8, -0.1f, 8), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
             HideoutACESS = Config.Bind("Hideout", "ACESS", new Vector3(0, 0.85f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             HideoutFilmic = Config.Bind("Hideout", "Filmic", new Vector3(4f, 2.1f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
@@ -822,7 +846,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(BSG.CameraEffects.NightVision).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).First(x => x.GetParameters().Count() == 1 && x.GetParameters()[0].Name == "on" && x.Name != "StartSwitch");
+            return typeof(BSG.CameraEffects.NightVision).GetMethods(BindingFlags.Instance | BindingFlags.Public).First(x => x.GetParameters().Count() == 1 && x.GetParameters()[0].Name == "on" && x.Name != "StartSwitch");
         }
         [PatchPostfix]
         private static void PatchPostFix(ref BSG.CameraEffects.NightVision __instance, bool on)
@@ -879,7 +903,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(PrismEffects).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(PrismEffects).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref PrismEffects __instance)
@@ -900,7 +924,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(OpticComponentUpdater).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(OpticComponentUpdater).GetMethod("Awake", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref OpticComponentUpdater __instance)
@@ -917,7 +941,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(OpticSight).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(OpticSight).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref OpticSight __instance)
@@ -955,7 +979,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(EFT.Animations.ProceduralWeaponAnimation).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).First(x => x.GetParameters().Count() == 1 && x.GetParameters()[0].Name == "currentScopeIndex");
+            return typeof(EFT.Animations.ProceduralWeaponAnimation).GetMethods(BindingFlags.Instance | BindingFlags.Public).First(x => x.GetParameters().Count() == 1 && x.GetParameters()[0].Name == "currentScopeIndex");
         }
         [PatchPostfix]
         private static void PatchPostFix(ref EFT.Animations.ProceduralWeaponAnimation __instance)
@@ -1028,7 +1052,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(FastBlur).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(FastBlur).GetMethod("Start", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref FastBlur __instance)
@@ -1049,7 +1073,7 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(EffectsController).GetMethod("method_7", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(EffectsController).GetMethod("method_7", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref EffectsController __instance)
@@ -1079,7 +1103,8 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(EFT.UI.BattleUIScreen).GetMethod("Show", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(EFT.UI.BattleUIScreen).GetMethods(BindingFlags.Instance | BindingFlags.Public).First(x => x.Name == "Show" && x.GetParameters()[0].Name == "owner");
+            //return typeof(EFT.UI.BattleUIScreen).GetMethod("Show", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref EFT.UI.BattleUIScreen __instance)
@@ -1094,12 +1119,12 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(EffectsController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+            return typeof(EffectsController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
         private static void PatchPostFix(ref EffectsController __instance)
         {
-            if (AmandsGraphicsPlugin.PainKillerEffectType == null)
+            if (AmandsGraphicsPlugin.PainKillerEffectType == null || AmandsGraphicsPlugin.PainEffectType == null)
             {
                 object EffectsList = Traverse.Create(__instance).Field("list_0").GetValue<object>();
                 object[] EffectsListItems = Traverse.Create(EffectsList).Field("_items").GetValue<object[]>();
@@ -1107,14 +1132,23 @@ namespace AmandsGraphics
                 {
                     foreach (object Effect in EffectsListItems)
                     {
-                        ChromaticAberration chromaticAberration_0 = Traverse.Create(Effect).Field("chromaticAberration_0").GetValue<ChromaticAberration>();
-                        CC_Sharpen cc_Sharpen_0 = Traverse.Create(Effect).Field("cc_Sharpen_0").GetValue<CC_Sharpen>();
-                        if (chromaticAberration_0 != null && cc_Sharpen_0 != null)
+                        if (AmandsGraphicsPlugin.PainKillerEffectType == null && Traverse.Create(Effect).Field("float_4").FieldExists())
                         {
-                            AmandsGraphicsPlugin.PainKillerEffectType = Effect.GetType();
-                            new AmandsPainkillerAddEffectPatch().Enable();
-                            new AmandsPainkillerDeleteEffectPatch().Enable();
-                            return;
+                            CC_Sharpen cc_Sharpen_0 = Traverse.Create(Effect).Field("cc_Sharpen_0").GetValue<CC_Sharpen>();
+                            if (cc_Sharpen_0 != null)
+                            {
+                                AmandsGraphicsPlugin.PainKillerEffectType = Effect.GetType();
+                                new AmandsPainkillerAddEffectPatch().Enable();
+                                new AmandsPainkillerDeleteEffectPatch().Enable();
+                                continue;
+                            }
+                        }
+                        if (AmandsGraphicsPlugin.PainEffectType == null && Traverse.Create(Effect).Field("cc_RadialBlur_0").FieldExists())
+                        {
+                            AmandsGraphicsPlugin.PainEffectType = Effect.GetType();
+                            new AmandsPainAddEffectPatch().Enable();
+                            new AmandsPainDeleteEffectPatch().Enable();
+                            continue;
                         }
                     }
                 }
@@ -1135,8 +1169,8 @@ namespace AmandsGraphics
                 List<IEffect> ActiveEffects = Traverse.Create(__instance).Field("ActiveEffects").GetValue<List<IEffect>>();
                 if (ActiveEffects != null)
                 {
-                    bool bool_1 = Traverse.Create(__instance).Field("bool_1").GetValue<bool>();
-                    float float_2 = Traverse.Create(__instance).Field("float_2").GetValue<float>();
+                    /*bool bool_1 = Traverse.Create(__instance).Field("bool_1").GetValue<bool>();
+                    float float_2 = Traverse.Create(__instance).Field("float_2").GetValue<float>();*/
 
                     float maxEffectValue;
                     if (ActiveEffects.Count <= 0)
@@ -1145,13 +1179,13 @@ namespace AmandsGraphics
                     }
                     else
                     {
-                        maxEffectValue = Mathf.Min(0.425f * AmandsGraphicsPlugin.PainkillerSaturation.Value, 1f);
+                        maxEffectValue = Mathf.Min(1.0f * AmandsGraphicsPlugin.PainkillerSaturation.Value, 1f);
                     }
                     Traverse.Create(__instance).Field("MaxEffectValue").SetValue(maxEffectValue);
-                    if (bool_1)
+                    /*if (bool_1)
                     {
                         Traverse.Create(__instance).Field("float_3").SetValue((ActiveEffects.Count > 0) ? 0.015f * AmandsGraphicsPlugin.PainkillerCAIntensity.Value : float_2);
-                    }
+                    }*/
                 }
             }
         }
@@ -1170,8 +1204,8 @@ namespace AmandsGraphics
                 List<IEffect> ActiveEffects = Traverse.Create(__instance).Field("ActiveEffects").GetValue<List<IEffect>>();
                 if (ActiveEffects != null)
                 {
-                    bool bool_1 = Traverse.Create(__instance).Field("bool_1").GetValue<bool>();
-                    float float_2 = Traverse.Create(__instance).Field("float_2").GetValue<float>();
+                    /*bool bool_1 = Traverse.Create(__instance).Field("bool_1").GetValue<bool>();
+                    float float_2 = Traverse.Create(__instance).Field("float_2").GetValue<float>();*/
 
                     float maxEffectValue;
                     if (ActiveEffects.Count <= 0)
@@ -1180,13 +1214,51 @@ namespace AmandsGraphics
                     }
                     else
                     {
-                        maxEffectValue = Mathf.Min(0.425f * AmandsGraphicsPlugin.PainkillerSaturation.Value, 1f);
+                        maxEffectValue = Mathf.Min(1.0f * AmandsGraphicsPlugin.PainkillerSaturation.Value, 1f);
                     }
                     Traverse.Create(__instance).Field("MaxEffectValue").SetValue(maxEffectValue);
-                    if (bool_1)
+                    /*if (bool_1)
                     {
                         Traverse.Create(__instance).Field("float_3").SetValue((ActiveEffects.Count > 0) ? 0.015f * AmandsGraphicsPlugin.PainkillerCAIntensity.Value : float_2);
-                    }
+                    }*/
+                }
+            }
+        }
+    }
+    public class AmandsPainAddEffectPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return AmandsGraphicsPlugin.PainEffectType.GetMethod("AddEffect", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref object __instance)
+        {
+            if (AmandsGraphicsPlugin.HealthEffectPain.Value == EEnabledFeature.On)
+            {
+                List<IEffect> ActiveEffects = Traverse.Create(__instance).Field("ActiveEffects").GetValue<List<IEffect>>();
+                if (ActiveEffects != null)
+                {
+                    Traverse.Create(__instance).Field("MaxEffectValue").SetValue(0.1f * AmandsGraphicsPlugin.PainRadialBlur.Value);
+                }
+            }
+        }
+    }
+    public class AmandsPainDeleteEffectPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return AmandsGraphicsPlugin.PainEffectType.GetMethod("DeleteEffect", BindingFlags.Instance | BindingFlags.Public);
+        }
+        [PatchPostfix]
+        private static void PatchPostFix(ref object __instance)
+        {
+            if (AmandsGraphicsPlugin.HealthEffectPain.Value == EEnabledFeature.On)
+            {
+                List<IEffect> ActiveEffects = Traverse.Create(__instance).Field("ActiveEffects").GetValue<List<IEffect>>();
+                if (ActiveEffects != null)
+                {
+                    Traverse.Create(__instance).Field("MaxEffectValue").SetValue(0.1f * AmandsGraphicsPlugin.PainRadialBlur.Value);
                 }
             }
         }
