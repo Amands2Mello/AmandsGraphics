@@ -32,7 +32,6 @@ namespace AmandsGraphics
         private static UnityEngine.Rendering.PostProcessing.MotionBlur FPSCameraMotionBlur;
         private static UnityEngine.Rendering.PostProcessing.DepthOfField FPSCameraDepthOfField;
         private static UnityStandardAssets.ImageEffects.DepthOfField FPSCameraWeaponDepthOfField;
-        //public static OpticSight opticSight;
         public static SightComponent sightComponent;
         public static Transform backLens;
 
