@@ -137,6 +137,8 @@ namespace AmandsGraphics
         private static AnimationCurve NVGAmbientContrast;
         private static AnimationCurve defaultAmbientBrightness;
         private static float defaultLightIntensity;
+        private static float defaultSunMeshBrightness;
+        private static float defaultScatteringBrightnessMultiplier;
 
         private static Dictionary<string, string> sceneLevelSettings = new Dictionary<string, string>();
 
@@ -146,6 +148,7 @@ namespace AmandsGraphics
 
         public void Start()
         {
+            sceneLevelSettings.Add("Sandbox_Scripts", "---Sandbox_ levelsettings ---");
             sceneLevelSettings.Add("City_Scripts", "---City_ levelsettings ---");
             sceneLevelSettings.Add("Laboratory_Scripts", "---Laboratory_levelsettings---");
             sceneLevelSettings.Add("custom_Light", "---Custom_levelsettings---");
@@ -201,6 +204,7 @@ namespace AmandsGraphics
 
             AmandsGraphicsPlugin.MysticalGlow.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.MysticalGlowIntensity.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.GroundZeroMysticalGlowIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsMysticalGlowIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsMysticalGlowIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LighthouseMysticalGlowIntensity.SettingChanged += SettingsUpdated;
@@ -210,6 +214,9 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.ShorelineMysticalGlowIntensity.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.HealthEffectHit.SettingChanged += SettingsUpdated;
+
+            AmandsGraphicsPlugin.SunMeshBrightness.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.SkyBrightness.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.Brightness.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.Tonemap.SettingChanged += SettingsUpdated;
@@ -225,6 +232,7 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.SunColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.SkyColor.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.GroundZeroFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LighthouseFogLevel.SettingChanged += SettingsUpdated;
@@ -233,6 +241,7 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.ReserveFogLevel.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.ShorelineFogLevel.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.GroundZeroTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.CustomsTonemap.SettingChanged += SettingsUpdated;
@@ -245,6 +254,8 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.ShorelineTonemap.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HideoutTonemap.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.GroundZeroACES.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.GroundZeroACESS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsACES.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsACESS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsACES.SettingChanged += SettingsUpdated;
@@ -268,6 +279,8 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.HideoutACES.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HideoutACESS.SettingChanged += SettingsUpdated;
 
+            AmandsGraphicsPlugin.GroundZeroFilmic.SettingChanged += SettingsUpdated;
+            AmandsGraphicsPlugin.GroundZeroFilmicS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsFilmic.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.StreetsFilmicS.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LabsFilmic.SettingChanged += SettingsUpdated;
@@ -719,10 +732,12 @@ namespace AmandsGraphics
                         {
                             defaultAmbientBrightness = toDController.AmbientBrightness;
                             defaultAmbientContrast = toDController.AmbientContrast;
+                            defaultScatteringBrightnessMultiplier = toDController.ScatteringBrightnessMultiplier;
                         }
                         tOD_Sky = TOD_Sky.Instance;
                         if (tOD_Sky != null)
                         {
+                            defaultSunMeshBrightness = tOD_Sky.Sun.MeshBrightness;
                             defaultLightIntensity = tOD_Sky.Night.LightIntensity;
                         }
                     }
@@ -810,6 +825,9 @@ namespace AmandsGraphics
             {
                 switch (scene)
                 {
+                    case "Sandbox_Scripts":
+                        Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.GroundZeroFogLevel.Value);
+                        break;
                     case "City_Scripts":
                         Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.StreetsFogLevel.Value);
                         break;
@@ -910,12 +928,7 @@ namespace AmandsGraphics
                         NightAmbientContrast = new AnimationCurve(new Keyframe(-0.2522f, AmandsGraphicsPlugin.NightAmbientContrast.Value), new Keyframe(-0.1261f, 1.15f));
                     }
                     toDController.AmbientContrast = NightAmbientContrast;
-                }
-                if (tOD_Sky != null)
-                {
-                    tOD_Sky.Moon.MeshBrightness = 3f;
-                    tOD_Sky.Moon.MeshContrast = 0.5f;
-                    tOD_Sky.Night.LightIntensity = defaultLightIntensity;
+                    toDController.ScatteringBrightnessMultiplier = defaultScatteringBrightnessMultiplier * AmandsGraphicsPlugin.SkyBrightness.Value;
                 }
             }
             else
@@ -923,13 +936,15 @@ namespace AmandsGraphics
                 if (toDController != null)
                 {
                     toDController.AmbientContrast = defaultAmbientContrast;
+                    toDController.ScatteringBrightnessMultiplier = defaultScatteringBrightnessMultiplier * AmandsGraphicsPlugin.SkyBrightness.Value;
                 }
-                if (tOD_Sky != null)
-                {
-                    tOD_Sky.Moon.MeshBrightness = 3f;
-                    tOD_Sky.Moon.MeshContrast = 0.5f;
-                    tOD_Sky.Night.LightIntensity = defaultLightIntensity;
-                }
+            }
+            if (tOD_Sky != null)
+            {
+                tOD_Sky.Sun.MeshBrightness = AmandsGraphicsPlugin.SunMeshBrightness.Value;
+                tOD_Sky.Moon.MeshBrightness = 3f;
+                tOD_Sky.Moon.MeshContrast = 0.5f;
+                tOD_Sky.Night.LightIntensity = defaultLightIntensity;
             }
             if (AmandsGraphicsPlugin.NVG.Value == EEnabledFeature.On && NVG)
             {
@@ -1088,6 +1103,17 @@ namespace AmandsGraphics
                 {
                     switch (scene)
                     {
+                        case "Sandbox_Scripts":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.GroundZeroMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.GroundZeroFogLevel.Value;
+                            break;
                         case "City_Scripts":
                             if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
                             {
@@ -1197,6 +1223,9 @@ namespace AmandsGraphics
                 {
                     switch (scene)
                     {
+                        case "Sandbox_Scripts":
+                            levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.GroundZeroFogLevel.Value;
+                            break;
                         case "City_Scripts":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.StreetsFogLevel.Value;
                             break;
@@ -1362,9 +1391,11 @@ namespace AmandsGraphics
             if (toDController != null)
             {
                 toDController.AmbientContrast = defaultAmbientContrast;
+                toDController.ScatteringBrightnessMultiplier = defaultScatteringBrightnessMultiplier;
             }
             if (tOD_Sky != null)
             {
+                tOD_Sky.Sun.MeshBrightness = defaultSunMeshBrightness;
                 tOD_Sky.Moon.MeshBrightness = 0.8f;
                 tOD_Sky.Moon.MeshContrast = 1f;
                 tOD_Sky.Night.LightIntensity = defaultLightIntensity;
@@ -1417,6 +1448,10 @@ namespace AmandsGraphics
                 FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.ACES;
                 switch (scene)
                 {
+                    case "Sandbox_Scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.GroundZeroACES.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.GroundZeroACESS.Value;
+                        break;
                     case "City_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.StreetsACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.StreetsACESS.Value;
@@ -1472,6 +1507,10 @@ namespace AmandsGraphics
                 FPSCameraPrismEffects.tonemapType = Prism.Utils.TonemapType.Filmic;
                 switch (scene)
                 {
+                    case "Sandbox_Scripts":
+                        FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.GroundZeroFilmic.Value;
+                        FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.GroundZeroFilmicS.Value;
+                        break;
                     case "City_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.StreetsFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.StreetsFilmicS.Value;
@@ -1527,6 +1566,9 @@ namespace AmandsGraphics
                 ETonemap tonemap = ETonemap.ACES;
                 switch (scene)
                 {
+                    case "Sandbox_Scripts":
+                        tonemap = AmandsGraphicsPlugin.GroundZeroTonemap.Value;
+                        break;
                     case "City_Scripts":
                         tonemap = AmandsGraphicsPlugin.StreetsTonemap.Value;
                         break;
