@@ -348,6 +348,10 @@ namespace AmandsGraphics
             {
                 switch (AmandsGraphicsPlugin.DebugMode.Value)
                 {
+                    case EDebugMode.SquidInkFix:
+                        AmandsGraphicsPlugin.SquidInkFix.Value = AmandsGraphicsPlugin.SquidInkFix.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
+                        UpdateAmandsGraphics();
+                        break;
                     case EDebugMode.Flashlight:
                         AmandsGraphicsPlugin.Flashlight.Value = AmandsGraphicsPlugin.Flashlight.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
                         break;
@@ -1290,7 +1294,7 @@ namespace AmandsGraphics
                 {
                     FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
                     FPSCameraCustomGlobalFog.FuncStart = NVG ? AmandsGraphicsPlugin.NVGCustomGlobalFogIntensity.Value : AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
-                    FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
+                    FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.SquidInkFix.Value == EEnabledFeature.On ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
                 }
             }
             if (FPSCameraGlobalFog != null)
@@ -1730,6 +1734,7 @@ namespace AmandsGraphics
     }
     public enum EDebugMode
     {
+        SquidInkFix,
         Flashlight,
         NVG,
         NVGOriginalColor,
