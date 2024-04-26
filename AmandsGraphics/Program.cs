@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.0")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.1")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -127,6 +127,7 @@ namespace AmandsGraphics
         public static ConfigEntry<float> PainRadialBlur { get; set; }
         public static ConfigEntry<float> SunMeshBrightness { get; set; }
         public static ConfigEntry<float> SkyBrightness { get; set; }
+        public static ConfigEntry<EEnabledFeature> SquidInkFix { get; set; }
 
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
@@ -341,6 +342,8 @@ namespace AmandsGraphics
             PainRadialBlur = Config.Bind(AmandsExperimental, "Pain RadialBlur", 0.25f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 1.0f), new ConfigurationManagerAttributes { Order = 3 }));
             SunMeshBrightness = Config.Bind(AmandsExperimental, "SunMeshBrightness", 2.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.25f, 3.0f), new ConfigurationManagerAttributes { Order = 2 }));
             SkyBrightness = Config.Bind(AmandsExperimental, "SkyBrightness", 1.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.1f, 2.0f), new ConfigurationManagerAttributes { Order = 1 }));
+
+            SquidInkFix = Config.Bind(AmandsExperimental, "SquidInkFix", EEnabledFeature.On, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 0 }));
 
             Brightness = Config.Bind(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 340 }));
             Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.Filmic, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
