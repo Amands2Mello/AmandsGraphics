@@ -69,9 +69,9 @@ namespace AmandsGraphics
         private static float OpticDOFFocusDistanceAnimation;
         private static RaycastHit hit;
         private static RaycastHit foliageHit;
-        private static LayerMask LowLayerMask = LayerMask.GetMask("Terrain", "LowPolyCollider", "HitCollider");
-        private static LayerMask HighLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider");
-        private static LayerMask FoliageLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider", "Foliage");
+        private static LayerMask LowLayerMask;
+        private static LayerMask HighLayerMask;
+        private static LayerMask FoliageLayerMask;
         private static Transform TargetCollider;
         private static Vector3 TargetLocal;
         private static AnimationCurve ApertureAnimationCurve;
@@ -145,6 +145,13 @@ namespace AmandsGraphics
 
         public bool GraphicsMode = false;
 
+        private void Awake()
+        {
+            LowLayerMask = LayerMask.GetMask("Terrain", "LowPolyCollider", "HitCollider");
+            HighLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider");
+            FoliageLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider", "Foliage");
+        }
+        
         public void Start()
         {
             sceneLevelSettings.Add("Sandbox_Scripts", "---Sandbox_ levelsettings ---");
