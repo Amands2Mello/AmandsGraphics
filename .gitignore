@@ -1,9 +1,0 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-/.vs/AmandsGraphics
-/AmandsGraphics/.vs
-/References
-/AmandsGraphics/obj/**
-/AmandsGraphics/bin/**
