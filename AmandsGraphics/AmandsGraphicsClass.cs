@@ -1,18 +1,20 @@
+using UnityEngine;
+using UnityEngine.Rendering.PostProcessing;
+using UnityStandardAssets.ImageEffects;
+using UnityEngine.SceneManagement;
+using System;
+using EFT.Weather;
+using System.Collections.Generic;
 using BSG.CameraEffects;
+using HarmonyLib;
+using UnityEngine.Rendering;
 using EFT;
 using EFT.InventoryLogic;
+using System.Reflection;
 using EFT.UI;
-using EFT.Weather;
-using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using TMPro;
-using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.PostProcessing;
-using UnityEngine.SceneManagement;
+using Comfort.Common;
 using UnityEngine.UI;
-using UnityStandardAssets.ImageEffects;
+using TMPro;
 
 namespace AmandsGraphics
 {
@@ -67,9 +69,9 @@ namespace AmandsGraphics
         private static float OpticDOFFocusDistanceAnimation;
         private static RaycastHit hit;
         private static RaycastHit foliageHit;
-        private static LayerMask LowLayerMask;
-        private static LayerMask HighLayerMask;
-        private static LayerMask FoliageLayerMask;
+        private static LayerMask LowLayerMask = LayerMask.GetMask("Terrain", "LowPolyCollider", "HitCollider");
+        private static LayerMask HighLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider");
+        private static LayerMask FoliageLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider", "Foliage");
         private static Transform TargetCollider;
         private static Vector3 TargetLocal;
         private static AnimationCurve ApertureAnimationCurve;
@@ -142,14 +144,6 @@ namespace AmandsGraphics
         public static bool NVG = false;
 
         public bool GraphicsMode = false;
-
-        private void Awake()
-        {
-            // Initialise the masks here, Unity complains about calling GetMask in standard C# constructors
-            LowLayerMask = LayerMask.GetMask("Terrain", "LowPolyCollider", "HitCollider");
-            HighLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider");
-            FoliageLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider", "Foliage");
-        }
 
         public void Start()
         {
@@ -617,7 +611,7 @@ namespace AmandsGraphics
         {
             if (SurroundDepthOfField && backLens != null)
             {
-                SurroundDepthOfFieldFocusDistance = Mathf.Clamp(Vector3.Distance(Camera.current.transform.position, backLens.position), 0.001f, 1f);
+                SurroundDepthOfFieldFocusDistance = Mathf.Clamp(Vector3.Distance(Camera.current.transform.position, backLens.position),0.001f,1f);
             }
             else
             {
@@ -1345,7 +1339,7 @@ namespace AmandsGraphics
             {
                 Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel);
             }
-            foreach (KeyValuePair<Light, float> changedLight in registeredLights)
+            foreach (KeyValuePair<Light,float> changedLight in registeredLights)
             {
                 changedLight.Key.range = changedLight.Value;
             }
