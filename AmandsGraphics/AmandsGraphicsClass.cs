@@ -20,7 +20,7 @@ namespace AmandsGraphics
 {
     public class AmandsGraphicsClass : MonoBehaviour
     {
-        public static LocalPlayer localPlayer;
+        public static Player Player;
         public static EAimingMode aimingMode;
         public static List<TacticalComboVisualController> tacticalComboVisualControllers = new List<TacticalComboVisualController>();
         public static Dictionary<Light, float> registeredLights = new Dictionary<Light, float>();
@@ -144,14 +144,12 @@ namespace AmandsGraphics
         public static bool NVG = false;
 
         public bool GraphicsMode = false;
-
         private void Awake()
         {
             LowLayerMask = LayerMask.GetMask("Terrain", "LowPolyCollider", "HitCollider");
             HighLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider");
             FoliageLayerMask = LayerMask.GetMask("Terrain", "HighPolyCollider", "HitCollider", "Foliage");
         }
-        
         public void Start()
         {
             sceneLevelSettings.Add("Sandbox_Scripts", "---Sandbox_ levelsettings ---");
@@ -443,16 +441,16 @@ namespace AmandsGraphics
                 }
                 //UpdateAmandsGraphics();
             }
-            if ((AmandsGraphicsPlugin.SurroundDepthOfField.Value == EDepthOfField.HoldingBreathOnly || AmandsGraphicsPlugin.OpticDepthOfField.Value == EDepthOfField.HoldingBreathOnly) && localPlayer != null)
+            if ((AmandsGraphicsPlugin.SurroundDepthOfField.Value == EDepthOfField.HoldingBreathOnly || AmandsGraphicsPlugin.OpticDepthOfField.Value == EDepthOfField.HoldingBreathOnly) && Player != null)
             {
-                HoldingBreath = Traverse.Create(Traverse.Create(localPlayer).Field("Physical").GetValue<object>()).Property("HoldingBreath").GetValue<bool>();
+                HoldingBreath = Traverse.Create(Traverse.Create(Player).Field("Physical").GetValue<object>()).Property("HoldingBreath").GetValue<bool>();
             }
             if ((SurroundDepthOfField || UIDepthOfField) && FPSCameraDepthOfField != null)
             {
-                SurroundDepthOfFieldEnabled = SurroundDepthOfField && (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.IsAiming && OpticCamera != null && OpticCamera.activeSelf && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
-                    localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.SurroundDOFOpticZoom.Value - 0.1f) && sightComponent != null &&
-                    sightComponent == localPlayer.ProceduralWeaponAnimation.CurrentAimingMod && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.SelectedScopeIndex == 0 && (AmandsGraphicsPlugin.SurroundDepthOfField.Value == EDepthOfField.HoldingBreathOnly ? HoldingBreath : true));
-                IsLooking = isLookingEnabled && Traverse.Create(localPlayer).Property("IsLooking").GetValue<bool>();
+                SurroundDepthOfFieldEnabled = SurroundDepthOfField && (Player != null && Player.ProceduralWeaponAnimation != null && Player.ProceduralWeaponAnimation.IsAiming && OpticCamera != null && OpticCamera.activeSelf && Player.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                    Player.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.SurroundDOFOpticZoom.Value - 0.1f) && sightComponent != null &&
+                    sightComponent == Player.ProceduralWeaponAnimation.CurrentAimingMod && Player.ProceduralWeaponAnimation.CurrentAimingMod.SelectedScopeIndex == 0 && (AmandsGraphicsPlugin.SurroundDepthOfField.Value == EDepthOfField.HoldingBreathOnly ? HoldingBreath : true));
+                IsLooking = isLookingEnabled && Traverse.Create(Player).Property("IsLooking").GetValue<bool>();
                 if (IsLooking)
                 {
                     SurroundDepthOfFieldEnabled = false;
@@ -470,12 +468,12 @@ namespace AmandsGraphics
                 switch (AmandsGraphicsPlugin.OpticDepthOfField.Value)
                 {
                     case EDepthOfField.On:
-                        OpticDOFEnabled = (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
-                            localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.OpticDOFOpticZoom.Value - 0.1f) && (OpticCameraThermalVision != null ? !OpticCameraThermalVision.enabled : true) && OpticCamera != null);
+                        OpticDOFEnabled = (Player != null && Player.ProceduralWeaponAnimation != null && Player.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                            Player.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.OpticDOFOpticZoom.Value - 0.1f) && (OpticCameraThermalVision != null ? !OpticCameraThermalVision.enabled : true) && OpticCamera != null);
                         break;
                     case EDepthOfField.HoldingBreathOnly:
-                        OpticDOFEnabled = (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.CurrentAimingMod != null &&
-                            localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.OpticDOFOpticZoom.Value - 0.1f) && (OpticCameraThermalVision != null ? !OpticCameraThermalVision.enabled : true) && OpticCamera != null && HoldingBreath);
+                        OpticDOFEnabled = (Player != null && Player.ProceduralWeaponAnimation != null && Player.ProceduralWeaponAnimation.CurrentAimingMod != null &&
+                            Player.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom() > (AmandsGraphicsPlugin.OpticDOFOpticZoom.Value - 0.1f) && (OpticCameraThermalVision != null ? !OpticCameraThermalVision.enabled : true) && OpticCamera != null && HoldingBreath);
                         break;
                 }
 
@@ -537,7 +535,7 @@ namespace AmandsGraphics
                             }
                             break;
                     }
-                    OpticCameraDepthOfField.aperture.value = ApertureAnimationCurve.Evaluate(localPlayer.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom());
+                    OpticCameraDepthOfField.aperture.value = ApertureAnimationCurve.Evaluate(Player.ProceduralWeaponAnimation.CurrentAimingMod.GetCurrentOpticZoom());
                 }
 
                 OpticDOFAnimation += ((OpticDOFEnabled ? 1f : 0f) - OpticDOFAnimation) * Time.deltaTime * AmandsGraphicsPlugin.OpticDOFSpeed.Value;
@@ -571,7 +569,7 @@ namespace AmandsGraphics
                 else
                 {
                     weaponDepthOfFieldState = EWeaponDepthOfFieldState.Weapon;
-                    if (localPlayer != null && localPlayer.ProceduralWeaponAnimation != null && localPlayer.ProceduralWeaponAnimation.IsAiming && !(SurroundDepthOfFieldEnabled || (UIDepthOfField && CameraClassBlur)))
+                    if (Player != null && Player.ProceduralWeaponAnimation != null && Player.ProceduralWeaponAnimation.IsAiming && !(SurroundDepthOfFieldEnabled || (UIDepthOfField && CameraClassBlur)))
                     {
                         if (aimingMode == EAimingMode.IronSight)
                         {
@@ -1301,7 +1299,14 @@ namespace AmandsGraphics
                 {
                     FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
                     FPSCameraCustomGlobalFog.FuncStart = NVG ? AmandsGraphicsPlugin.NVGCustomGlobalFogIntensity.Value : AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
-                    FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.SquidInkFix.Value == EEnabledFeature.On ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
+                    if (scene == "Sandbox_Scripts" || scene == "City_Scripts" || scene == "Lighthouse_Abadonned_pier")
+                    {
+                        FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.SquidInkFix.Value == EEnabledFeature.On ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
+                    }
+                    else
+                    {
+                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
+                    }
                 }
             }
             if (FPSCameraGlobalFog != null)
