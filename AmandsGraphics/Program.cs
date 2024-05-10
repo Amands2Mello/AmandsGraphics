@@ -230,15 +230,37 @@ namespace AmandsGraphics
         public static ConfigEntry<Vector4> LightColorIndex4 { get; set; }
         public static ConfigEntry<Vector4> LightColorIndex5 { get; set; }
 
+        public static ConfigEntry<string> Version { get; set; }
+        private static bool RequestDefaultValues = false;
+
         private void Awake()
         {
             Debug.LogError("Graphics Awake()");
-            Hook = new GameObject();
+            Hook = new GameObject("Graphics");
             AmandsGraphicsClassComponent = Hook.AddComponent<AmandsGraphicsClass>();
             DontDestroyOnLoad(Hook);
         }
         private void Start()
         {
+            Version = Config.Bind("Versioning", "Version", "0.0.0", new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 1, ReadOnly = true, IsAdvanced = true }));
+
+            if (Version.Value == "0.0.0")
+            {
+                // Using New Config File
+                Version.Value = Info.Metadata.Version.ToString();
+                RequestDefaultValues = true;
+            }
+            else if (Version.Value != Info.Metadata.Version.ToString())
+            {
+                // Using Old Config File
+                Version.Value = Info.Metadata.Version.ToString();
+                RequestDefaultValues = true;
+            }
+            else
+            {
+                // Valid Config File
+            }
+
             string AmandsCinematic = "AmandsGraphics Cinematic";
             string AmandsExperimental = "AmandsGraphics Experimental";
             string AmandsFeatures = "AmandsGraphics Features";
@@ -310,7 +332,7 @@ namespace AmandsGraphics
             NVGCustomGlobalFogIntensity = Config.Bind(AmandsExperimental, "NVG CustomGlobalFog Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
             NVGMoonLightIntensity = Config.Bind(AmandsExperimental, "NVG Moon LightIntensity", 1f, new ConfigDescription("", new AcceptableValueRange<float>(0.5f, 2f), new ConfigurationManagerAttributes { Order = 90 }));
 
-            NightAmbientLight = Config.Bind(AmandsExperimental, "Night AmbientLight", EEnabledFeature.On, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80 }));
+            NightAmbientLight = Config.Bind(AmandsExperimental, "Night AmbientLight", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80 }));
             NightAmbientContrast = Config.Bind(AmandsExperimental, "Night AmbientAmbientContrast", 1.1f, new ConfigDescription("", new AcceptableValueRange<float>(1.1f, 1.15f), new ConfigurationManagerAttributes { Order = 70, IsAdvanced = true }));
             MysticalGlow = Config.Bind(AmandsExperimental, "MysticalGlow", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 60 }));
             MysticalGlowIntensity = Config.Bind(AmandsExperimental, "MysticalGlow Intensity", 0.05f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 0.1f), new ConfigurationManagerAttributes { Order = 50, IsAdvanced = true }));
@@ -451,6 +473,8 @@ namespace AmandsGraphics
             LightColorIndex4 = Config.Bind("AmandsGraphics LightColor", "Index4", new Vector4(255.0f, 238.0f, 196.0f) / 255.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
             LightColorIndex5 = Config.Bind("AmandsGraphics LightColor", "Index5", new Vector4(150.0f, 143.0f, 122.0f) / 255.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
+            if (RequestDefaultValues) DefaultValues();
+
             new AmandsPlayerPatch().Enable();
             new AmandsGraphicsNVGPatch().Enable();
             new AmandsGraphicsApplyNVGPatch().Enable();
@@ -466,6 +490,49 @@ namespace AmandsGraphics
             new AmandsGraphicsFastBlurHitPatch().Enable();
             new AmandsBattleUIScreenPatch().Enable();
             new AmandsEffectsControllerPatch().Enable();
+        }
+        private void DefaultValues()
+        {
+            NVGTonemap.Value = (ETonemap)NVGTonemap.DefaultValue;
+            NightAmbientLight.Value = (EEnabledFeature)NightAmbientLight.DefaultValue;
+            Tonemap.Value = (EGlobalTonemap)Tonemap.DefaultValue;
+            GroundZeroTonemap.Value = (ETonemap)GroundZeroTonemap.DefaultValue;
+            StreetsTonemap.Value = (ETonemap)StreetsTonemap.DefaultValue;
+            LabsTonemap.Value = (ETonemap)LabsTonemap.DefaultValue;
+            CustomsTonemap.Value = (ETonemap)CustomsTonemap.DefaultValue;
+            FactoryTonemap.Value = (ETonemap)FactoryTonemap.DefaultValue;
+            FactoryNightTonemap.Value = (ETonemap)FactoryNightTonemap.DefaultValue;
+            LighthouseTonemap.Value = (ETonemap)LighthouseTonemap.DefaultValue;
+            InterchangeTonemap.Value = (ETonemap)InterchangeTonemap.DefaultValue;
+            WoodsTonemap.Value = (ETonemap)WoodsTonemap.DefaultValue;
+            ReserveTonemap.Value = (ETonemap)ReserveTonemap.DefaultValue;
+            ShorelineTonemap.Value = (ETonemap)ShorelineTonemap.DefaultValue;
+            HideoutTonemap.Value = (ETonemap)HideoutTonemap.DefaultValue;
+
+            StreetsFilmic.Value = (Vector3)StreetsFilmic.DefaultValue;
+            StreetsFilmicS.Value = (Vector3)StreetsFilmicS.DefaultValue;
+            LabsFilmic.Value = (Vector3)LabsFilmic.DefaultValue;
+            LabsFilmicS.Value = (Vector3)LabsFilmicS.DefaultValue;
+            CustomsFilmic.Value = (Vector3)CustomsFilmic.DefaultValue;
+            CustomsFilmicS.Value = (Vector3)CustomsFilmicS.DefaultValue;
+            FactoryFilmic.Value = (Vector3)FactoryFilmic.DefaultValue;
+            FactoryFilmicS.Value = (Vector3)FactoryFilmicS.DefaultValue;
+            FactoryNightFilmic.Value = (Vector3)FactoryNightFilmic.DefaultValue;
+            FactoryNightFilmicS.Value = (Vector3)FactoryNightFilmicS.DefaultValue;
+            LighthouseFilmic.Value = (Vector3)LighthouseFilmic.DefaultValue;
+            LighthouseFilmicS.Value = (Vector3)LighthouseFilmicS.DefaultValue;
+            InterchangeACES.Value = (Vector3)InterchangeACES.DefaultValue;
+            InterchangeACESS.Value = (Vector3)InterchangeACESS.DefaultValue;
+            InterchangeFilmic.Value = (Vector3)InterchangeFilmic.DefaultValue;
+            InterchangeFilmicS.Value = (Vector3)InterchangeFilmicS.DefaultValue;
+            WoodsFilmic.Value = (Vector3)WoodsFilmic.DefaultValue;
+            WoodsFilmicS.Value = (Vector3)WoodsFilmicS.DefaultValue;
+            ReserveFilmic.Value = (Vector3)ReserveFilmic.DefaultValue;
+            ReserveFilmicS.Value = (Vector3)ReserveFilmicS.DefaultValue;
+            ShorelineFilmic.Value = (Vector3)ShorelineFilmic.DefaultValue;
+            ShorelineFilmicS.Value = (Vector3)ShorelineFilmicS.DefaultValue;
+            HideoutFilmic.Value = (Vector3)HideoutFilmic.DefaultValue;
+            HideoutFilmicS.Value = (Vector3)HideoutFilmicS.DefaultValue;
         }
     }
     public class AmandsPlayerPatch : ModulePatch
