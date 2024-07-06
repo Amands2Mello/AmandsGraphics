@@ -1,6 +1,6 @@
 
-using Aki.Common.Utils;
-using Aki.Reflection.Patching;
+using SPT.Common.Utils;
+using SPT.Reflection.Patching;
 using BepInEx;
 using BepInEx.Configuration;
 using System;
@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.2")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.3")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -97,7 +97,6 @@ namespace AmandsGraphics
         public static ConfigEntry<bool> NVGOriginalColor { get; set; }
         public static ConfigEntry<float> NVGOriginalSkyColor { get; set; }
         public static ConfigEntry<float> InterchangeNVGOriginalSkyColor { get; set; }
-        public static ConfigEntry<float> NVGCustomGlobalFogIntensity { get; set; }
         public static ConfigEntry<float> NVGMoonLightIntensity { get; set; }
 
         public static ConfigEntry<EEnabledFeature> NightAmbientLight { get; set; }
@@ -126,7 +125,6 @@ namespace AmandsGraphics
         public static ConfigEntry<EEnabledFeature> HealthEffectPain { get; set; }
         public static ConfigEntry<float> SunMeshBrightness { get; set; }
         public static ConfigEntry<float> SkyBrightness { get; set; }
-        public static ConfigEntry<EEnabledFeature> SquidInkFix { get; set; }
 
         public static ConfigEntry<float> Brightness { get; set; }
         public static ConfigEntry<EGlobalTonemap> Tonemap { get; set; }
@@ -134,8 +132,6 @@ namespace AmandsGraphics
         public static ConfigEntry<float> BloomIntensity { get; set; }
         public static ConfigEntry<bool> UseBSGCC_Vintage { get; set; }
         public static ConfigEntry<bool> UseBSGCC_Sharpen { get; set; }
-        public static ConfigEntry<bool> UseBSGCustomGlobalFog { get; set; }
-        public static ConfigEntry<float> CustomGlobalFogIntensity { get; set; }
         public static ConfigEntry<bool> UseBSGGlobalFog { get; set; }
         public static ConfigEntry<bool> UseBSGColorCorrectionCurves { get; set; }
         public static ConfigEntry<bool> LightsUseLinearIntensity { get; set; }
@@ -327,9 +323,8 @@ namespace AmandsGraphics
             NVGTonemap = Config.Bind(AmandsExperimental, "NVG Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 142, IsAdvanced = true }));
             NVGAmbientContrast = Config.Bind(AmandsExperimental, "NVG AmbientContrast", 1f, new ConfigDescription("", new AcceptableValueRange<float>(1f, 1.5f), new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             NVGNoiseIntensity = Config.Bind(AmandsExperimental, "NVG Noise Intensity", 0.8f, new ConfigDescription("", new AcceptableValueRange<float>(0f, 2f), new ConfigurationManagerAttributes { Order = 130 }));
-            NVGOriginalColor = Config.Bind(AmandsExperimental, "NVG Original Color", true, new ConfigDescription("Enables back all default color filters", null, new ConfigurationManagerAttributes { Order = 120 }));
+            NVGOriginalColor = Config.Bind(AmandsExperimental, "NVG Original Color", false, new ConfigDescription("Enables back all default color filters", null, new ConfigurationManagerAttributes { Order = 120 }));
             NVGOriginalSkyColor = Config.Bind(AmandsExperimental, "NVG Original Sky Color", 0.1f, new ConfigDescription("Enables back the default sky color for NVG", new AcceptableValueRange<float>(0.001f, 1f), new ConfigurationManagerAttributes { Order = 110 }));
-            NVGCustomGlobalFogIntensity = Config.Bind(AmandsExperimental, "NVG CustomGlobalFog Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
             NVGMoonLightIntensity = Config.Bind(AmandsExperimental, "NVG Moon LightIntensity", 1f, new ConfigDescription("", new AcceptableValueRange<float>(0.5f, 2f), new ConfigurationManagerAttributes { Order = 90 }));
 
             NightAmbientLight = Config.Bind(AmandsExperimental, "Night AmbientLight", EEnabledFeature.Off, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80 }));
@@ -349,18 +344,14 @@ namespace AmandsGraphics
             SunMeshBrightness = Config.Bind(AmandsExperimental, "SunMeshBrightness", 2.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.25f, 3.0f), new ConfigurationManagerAttributes { Order = 2 }));
             SkyBrightness = Config.Bind(AmandsExperimental, "SkyBrightness", 1.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.1f, 2.0f), new ConfigurationManagerAttributes { Order = 1 }));
 
-            SquidInkFix = Config.Bind(AmandsExperimental, "SquidInkFix", EEnabledFeature.On, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 0 }));
-
             Brightness = Config.Bind(AmandsFeatures, "Brightness", 0.5f, new ConfigDescription("EXPERIMENTAL", new AcceptableValueRange<float>(0f, 1f), new ConfigurationManagerAttributes { Order = 340 }));
             Tonemap = Config.Bind(AmandsFeatures, "Tonemap", EGlobalTonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 330 }));
-            UseBSGLUT = Config.Bind(AmandsFeatures, "Use BSG LUT", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 320, IsAdvanced = true }));
+            UseBSGLUT = Config.Bind(AmandsFeatures, "Use BSG LUT", false, new ConfigDescription("Enabling this will revert the mod changes", null, new ConfigurationManagerAttributes { Order = 320, IsAdvanced = true }));
             BloomIntensity = Config.Bind(AmandsFeatures, "Bloom Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 310 }));
-            UseBSGCC_Vintage = Config.Bind(AmandsFeatures, "Use BSG CC_Vintage", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 300, IsAdvanced = true }));
-            UseBSGCC_Sharpen = Config.Bind(AmandsFeatures, "Use BSG CC_Sharpen", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 290, IsAdvanced = true }));
-            UseBSGCustomGlobalFog = Config.Bind(AmandsFeatures, "Use BSG CustomGlobalFog", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 280, IsAdvanced = true }));
-            CustomGlobalFogIntensity = Config.Bind(AmandsFeatures, "CustomGlobalFog Intensity", 0.1f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 270, IsAdvanced = true }));
-            UseBSGGlobalFog = Config.Bind(AmandsFeatures, "Use BSG GlobalFog", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 260, IsAdvanced = true }));
-            UseBSGColorCorrectionCurves = Config.Bind(AmandsFeatures, "Use BSG ColorCorrection", false, new ConfigDescription("Enabling this will revert the mod changes (not recommended)", null, new ConfigurationManagerAttributes { Order = 250, IsAdvanced = true }));
+            UseBSGCC_Vintage = Config.Bind(AmandsFeatures, "Use BSG CC_Vintage", false, new ConfigDescription("Enabling this will revert the mod changes", null, new ConfigurationManagerAttributes { Order = 300, IsAdvanced = true }));
+            UseBSGCC_Sharpen = Config.Bind(AmandsFeatures, "Use BSG CC_Sharpen", false, new ConfigDescription("Enabling this will revert the mod changes", null, new ConfigurationManagerAttributes { Order = 290, IsAdvanced = true }));
+            UseBSGGlobalFog = Config.Bind(AmandsFeatures, "Use BSG GlobalFog", false, new ConfigDescription("Enabling this will revert the mod changes", null, new ConfigurationManagerAttributes { Order = 260, IsAdvanced = true }));
+            UseBSGColorCorrectionCurves = Config.Bind(AmandsFeatures, "Use BSG ColorCorrection", false, new ConfigDescription("Enabling this will revert the mod changes", null, new ConfigurationManagerAttributes { Order = 250, IsAdvanced = true }));
             LightsUseLinearIntensity = Config.Bind(AmandsFeatures, "LightsUseLinearIntensity", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 240 }));
             SunColor = Config.Bind(AmandsFeatures, "SunColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 230 }));
             SkyColor = Config.Bind(AmandsFeatures, "SkyColor", true, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 220 }));
@@ -493,46 +484,7 @@ namespace AmandsGraphics
         }
         private void DefaultValues()
         {
-            NVGTonemap.Value = (ETonemap)NVGTonemap.DefaultValue;
-            NightAmbientLight.Value = (EEnabledFeature)NightAmbientLight.DefaultValue;
-            Tonemap.Value = (EGlobalTonemap)Tonemap.DefaultValue;
-            GroundZeroTonemap.Value = (ETonemap)GroundZeroTonemap.DefaultValue;
-            StreetsTonemap.Value = (ETonemap)StreetsTonemap.DefaultValue;
-            LabsTonemap.Value = (ETonemap)LabsTonemap.DefaultValue;
-            CustomsTonemap.Value = (ETonemap)CustomsTonemap.DefaultValue;
-            FactoryTonemap.Value = (ETonemap)FactoryTonemap.DefaultValue;
-            FactoryNightTonemap.Value = (ETonemap)FactoryNightTonemap.DefaultValue;
-            LighthouseTonemap.Value = (ETonemap)LighthouseTonemap.DefaultValue;
-            InterchangeTonemap.Value = (ETonemap)InterchangeTonemap.DefaultValue;
-            WoodsTonemap.Value = (ETonemap)WoodsTonemap.DefaultValue;
-            ReserveTonemap.Value = (ETonemap)ReserveTonemap.DefaultValue;
-            ShorelineTonemap.Value = (ETonemap)ShorelineTonemap.DefaultValue;
-            HideoutTonemap.Value = (ETonemap)HideoutTonemap.DefaultValue;
-
-            StreetsFilmic.Value = (Vector3)StreetsFilmic.DefaultValue;
-            StreetsFilmicS.Value = (Vector3)StreetsFilmicS.DefaultValue;
-            LabsFilmic.Value = (Vector3)LabsFilmic.DefaultValue;
-            LabsFilmicS.Value = (Vector3)LabsFilmicS.DefaultValue;
-            CustomsFilmic.Value = (Vector3)CustomsFilmic.DefaultValue;
-            CustomsFilmicS.Value = (Vector3)CustomsFilmicS.DefaultValue;
-            FactoryFilmic.Value = (Vector3)FactoryFilmic.DefaultValue;
-            FactoryFilmicS.Value = (Vector3)FactoryFilmicS.DefaultValue;
-            FactoryNightFilmic.Value = (Vector3)FactoryNightFilmic.DefaultValue;
-            FactoryNightFilmicS.Value = (Vector3)FactoryNightFilmicS.DefaultValue;
-            LighthouseFilmic.Value = (Vector3)LighthouseFilmic.DefaultValue;
-            LighthouseFilmicS.Value = (Vector3)LighthouseFilmicS.DefaultValue;
-            InterchangeACES.Value = (Vector3)InterchangeACES.DefaultValue;
-            InterchangeACESS.Value = (Vector3)InterchangeACESS.DefaultValue;
-            InterchangeFilmic.Value = (Vector3)InterchangeFilmic.DefaultValue;
-            InterchangeFilmicS.Value = (Vector3)InterchangeFilmicS.DefaultValue;
-            WoodsFilmic.Value = (Vector3)WoodsFilmic.DefaultValue;
-            WoodsFilmicS.Value = (Vector3)WoodsFilmicS.DefaultValue;
-            ReserveFilmic.Value = (Vector3)ReserveFilmic.DefaultValue;
-            ReserveFilmicS.Value = (Vector3)ReserveFilmicS.DefaultValue;
-            ShorelineFilmic.Value = (Vector3)ShorelineFilmic.DefaultValue;
-            ShorelineFilmicS.Value = (Vector3)ShorelineFilmicS.DefaultValue;
-            HideoutFilmic.Value = (Vector3)HideoutFilmic.DefaultValue;
-            HideoutFilmicS.Value = (Vector3)HideoutFilmicS.DefaultValue;
+            NVGOriginalColor.Value = (bool)NVGOriginalColor.DefaultValue;
         }
     }
     public class AmandsPlayerPatch : ModulePatch
@@ -811,11 +763,10 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(EFT.UI.BattleUIScreen).GetMethods(BindingFlags.Instance | BindingFlags.Public).First(x => x.Name == "Show" && x.GetParameters()[0].Name == "owner");
-            //return typeof(EFT.UI.BattleUIScreen).GetMethod("Show", BindingFlags.Instance | BindingFlags.Public);
+            return typeof(EFT.UI.EftBattleUIScreen).GetMethods(BindingFlags.Instance | BindingFlags.Public).First(x => x.Name == "Show" && x.GetParameters()[0].Name == "owner");
         }
         [PatchPostfix]
-        private static void PatchPostFix(ref EFT.UI.BattleUIScreen __instance)
+        private static void PatchPostFix(ref EFT.UI.EftBattleUIScreen __instance)
         {
             if (AmandsGraphicsClass.ActiveUIScreen == __instance.gameObject) return;
             AmandsGraphicsClass.ActiveUIScreen = __instance.gameObject;
