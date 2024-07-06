@@ -91,7 +91,6 @@ namespace AmandsGraphics
         private static Dictionary<BloomAndFlares, float> FPSCameraBloomAndFlares = new Dictionary<BloomAndFlares, float>();
         private static PrismEffects FPSCameraPrismEffects;
         private static CC_Vintage FPSCameraCC_Vintage;
-        private static CustomGlobalFog FPSCameraCustomGlobalFog;
         private static Behaviour FPSCameraGlobalFog;
         private static ColorCorrectionCurves FPSCameraColorCorrectionCurves;
         public static NightVision FPSCameraNightVision;
@@ -117,7 +116,6 @@ namespace AmandsGraphics
         private static float defaultFPSCameraWeaponDepthOfFieldMaxBlurSize;
         private static UnityStandardAssets.ImageEffects.DepthOfField.BlurSampleCount defaultFPSCameraWeaponDepthOfFieldBlurSampleCount;
         private static bool defaultFPSCameraCC_Vintage;
-        private static bool defaultFPSCameraCustomGlobalFog;
         private static bool defaultFPSCameraGlobalFog;
         private static bool defaultFPSCameraColorCorrectionCurves;
         private static Color defaultSkyColor;
@@ -199,7 +197,6 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.NVGOriginalSkyColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.NVGOriginalColor.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.NVGCustomGlobalFogIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.NVGMoonLightIntensity.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.NightAmbientLight.SettingChanged += SettingsUpdated;
@@ -228,8 +225,6 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.BloomIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.UseBSGCC_Vintage.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.UseBSGCC_Sharpen.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.UseBSGCustomGlobalFog.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.CustomGlobalFogIntensity.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.UseBSGGlobalFog.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.UseBSGColorCorrectionCurves.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.LightsUseLinearIntensity.SettingChanged += SettingsUpdated;
@@ -353,10 +348,6 @@ namespace AmandsGraphics
             {
                 switch (AmandsGraphicsPlugin.DebugMode.Value)
                 {
-                    case EDebugMode.SquidInkFix:
-                        AmandsGraphicsPlugin.SquidInkFix.Value = AmandsGraphicsPlugin.SquidInkFix.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
-                        UpdateAmandsGraphics();
-                        break;
                     case EDebugMode.Flashlight:
                         AmandsGraphicsPlugin.Flashlight.Value = AmandsGraphicsPlugin.Flashlight.Value == EEnabledFeature.On ? EEnabledFeature.Off : EEnabledFeature.On;
                         break;
@@ -419,9 +410,6 @@ namespace AmandsGraphics
                         break;
                     case EDebugMode.CC_Sharpen:
                         AmandsGraphicsPlugin.UseBSGCC_Sharpen.Value = !AmandsGraphicsPlugin.UseBSGCC_Sharpen.Value;
-                        break;
-                    case EDebugMode.CustomGlobalFog:
-                        AmandsGraphicsPlugin.UseBSGCustomGlobalFog.Value = !AmandsGraphicsPlugin.UseBSGCustomGlobalFog.Value;
                         break;
                     case EDebugMode.GlobalFog:
                         AmandsGraphicsPlugin.UseBSGGlobalFog.Value = !AmandsGraphicsPlugin.UseBSGGlobalFog.Value;
@@ -703,11 +691,6 @@ namespace AmandsGraphics
                     if (FPSCameraCC_Vintage != null)
                     {
                         defaultFPSCameraCC_Vintage = FPSCameraCC_Vintage.enabled;
-                    }
-                    FPSCameraCustomGlobalFog = FPSCamera.GetComponent<CustomGlobalFog>();
-                    if (FPSCameraCustomGlobalFog != null)
-                    {
-                        defaultFPSCameraCustomGlobalFog = FPSCameraCustomGlobalFog.enabled;
                     }
                     foreach (Component component in FPSCamera.GetComponents<Component>())
                     {
@@ -1287,28 +1270,6 @@ namespace AmandsGraphics
                     FPSCameraCC_Sharpen.rampOffsetB = 0f;
                 }
             }
-            if (FPSCameraCustomGlobalFog != null)
-            {
-                if (AmandsGraphicsPlugin.UseBSGCustomGlobalFog.Value)
-                {
-                    FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
-                    FPSCameraCustomGlobalFog.FuncStart = 1f;
-                    FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
-                }
-                else
-                {
-                    FPSCameraCustomGlobalFog.enabled = (scene == "Factory_Day" || scene == "Factory_Night" || scene == "default") ? false : defaultFPSCameraCustomGlobalFog;
-                    FPSCameraCustomGlobalFog.FuncStart = NVG ? AmandsGraphicsPlugin.NVGCustomGlobalFogIntensity.Value : AmandsGraphicsPlugin.CustomGlobalFogIntensity.Value;
-                    if (scene == "Sandbox_Scripts" || scene == "City_Scripts" || scene == "Lighthouse_Abadonned_pier")
-                    {
-                        FPSCameraCustomGlobalFog.BlendMode = AmandsGraphicsPlugin.SquidInkFix.Value == EEnabledFeature.On ? CustomGlobalFog.BlendModes.Lighten : CustomGlobalFog.BlendModes.Normal;
-                    }
-                    else
-                    {
-                        FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Normal;
-                    }
-                }
-            }
             if (FPSCameraGlobalFog != null)
             {
                 FPSCameraGlobalFog.enabled = AmandsGraphicsPlugin.UseBSGGlobalFog.Value;
@@ -1430,12 +1391,6 @@ namespace AmandsGraphics
                 FPSCameraCC_Sharpen.rampOffsetR = defaultrampOffsetR;
                 FPSCameraCC_Sharpen.rampOffsetG = defaultrampOffsetG;
                 FPSCameraCC_Sharpen.rampOffsetB = defaultrampOffsetB;
-            }
-            if (FPSCameraCustomGlobalFog != null)
-            {
-                FPSCameraCustomGlobalFog.enabled = defaultFPSCameraCustomGlobalFog;
-                FPSCameraCustomGlobalFog.FuncStart = 1f;
-                FPSCameraCustomGlobalFog.BlendMode = CustomGlobalFog.BlendModes.Lighten;
             }
             if (FPSCameraGlobalFog != null)
             {
@@ -1661,7 +1616,7 @@ namespace AmandsGraphics
         }
         public static void CreateGameObjects(Transform parent)
         {
-            AmandsToggleTextUIGameObject = new GameObject("killList");
+            AmandsToggleTextUIGameObject = new GameObject("AmandsToggleText");
             AmandsToggleTextUITransform = AmandsToggleTextUIGameObject.AddComponent<RectTransform>();
             AmandsToggleTextUIGameObject.transform.SetParent(parent);
             AmandsToggleTextUITransform.anchorMin = Vector2.zero;
@@ -1746,7 +1701,6 @@ namespace AmandsGraphics
     }
     public enum EDebugMode
     {
-        SquidInkFix,
         Flashlight,
         NVG,
         NVGOriginalColor,
@@ -1759,7 +1713,6 @@ namespace AmandsGraphics
         useLut,
         CC_Vintage,
         CC_Sharpen,
-        CustomGlobalFog,
         GlobalFog,
         ColorCorrectionCurves,
         LightsUseLinearIntensity,
