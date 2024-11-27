@@ -15,6 +15,8 @@ using EFT.UI;
 using Comfort.Common;
 using UnityEngine.UI;
 using TMPro;
+using System.ComponentModel;
+using EFT.Interactive;
 
 namespace AmandsGraphics
 {
@@ -86,7 +88,7 @@ namespace AmandsGraphics
         private static WeatherController weatherController;
         private static ToDController toDController;
         private static TOD_Sky tOD_Sky;
-        private static object mBOIT_Scattering;
+        private static MBOIT_Scattering mBOIT_Scattering;
         private static CC_Sharpen FPSCameraCC_Sharpen;
         private static Dictionary<BloomAndFlares, float> FPSCameraBloomAndFlares = new Dictionary<BloomAndFlares, float>();
         private static PrismEffects FPSCameraPrismEffects;
@@ -153,13 +155,13 @@ namespace AmandsGraphics
             sceneLevelSettings.Add("Sandbox_Scripts", "---Sandbox_ levelsettings ---");
             sceneLevelSettings.Add("City_Scripts", "---City_ levelsettings ---");
             sceneLevelSettings.Add("Laboratory_Scripts", "---Laboratory_levelsettings---");
-            sceneLevelSettings.Add("custom_Light", "---Custom_levelsettings---");
-            sceneLevelSettings.Add("Factory_Day", "---FactoryDay_levelsettings---");
-            sceneLevelSettings.Add("Factory_Night", "---FactoryNight_levelsettings---");
-            sceneLevelSettings.Add("Lighthouse_Abadonned_pier", "---Lighthouse_levelsettings---");
-            sceneLevelSettings.Add("Shopping_Mall_Terrain", "---Interchange_levelsettings---");
-            sceneLevelSettings.Add("woods_combined", "---Woods_levelsettings---");
-            sceneLevelSettings.Add("Reserve_Base_DesignStuff", "---Reserve_levelsettings---");
+            sceneLevelSettings.Add("custom_Scripts", "---Custom_levelsettings---");
+            sceneLevelSettings.Add("Factory_Rework_Day_Scripts", "---FactoryDay_levelsettings---");
+            sceneLevelSettings.Add("Factory_Rework_Night_Scripts", "---FactoryDay_levelsettings---");
+            sceneLevelSettings.Add("Lighthouse_Scripts", "---Lighthouse_levelsettings---");
+            sceneLevelSettings.Add("Shopping_Mall_Scripts", "---Interchange_levelsettings---");
+            sceneLevelSettings.Add("woods_Scripts", "---Woods_levelsettings---");
+            sceneLevelSettings.Add("Reserve_Base_Scripts", "---Reserve_levelsettings---");
             sceneLevelSettings.Add("shoreline_scripts", "---ShoreLine_levelsettings---");
             sceneLevelSettings.Add("default", "!settings");
 
@@ -303,10 +305,6 @@ namespace AmandsGraphics
             AmandsGraphicsPlugin.HideoutFilmic.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HideoutFilmicS.SettingChanged += SettingsUpdated;
 
-            AmandsGraphicsPlugin.FactorySkyColor.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.FactoryNVSkyColor.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.FactoryNightSkyColor.SettingChanged += SettingsUpdated;
-            AmandsGraphicsPlugin.FactoryNightNVSkyColor.SettingChanged += SettingsUpdated;
             AmandsGraphicsPlugin.HideoutSkyColor.SettingChanged += SettingsUpdated;
 
             AmandsGraphicsPlugin.LightColorIndex0.SettingChanged += SettingsUpdated;
@@ -692,7 +690,7 @@ namespace AmandsGraphics
                     {
                         defaultFPSCameraCC_Vintage = FPSCameraCC_Vintage.enabled;
                     }
-                    foreach (Component component in FPSCamera.GetComponents<Component>())
+                    /*foreach (Component component in FPSCamera.GetComponents<Component>())
                     {
                         if (component.ToString() == "FPS Camera (UnityStandardAssets.ImageEffects.GlobalFog)")
                         {
@@ -708,6 +706,11 @@ namespace AmandsGraphics
                                 defaultMBOITZeroLevel = Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").GetValue<float>();
                             }
                         }
+                    }*/
+                    mBOIT_Scattering = FPSCamera.GetComponent<MBOIT_Scattering>();
+                    if (mBOIT_Scattering != null)
+                    {
+                        defaultMBOITZeroLevel = mBOIT_Scattering.ZeroLevel;
                     }
                     FPSCameraColorCorrectionCurves = FPSCamera.GetComponent<ColorCorrectionCurves>();
                     if (FPSCameraColorCorrectionCurves != null)
@@ -824,19 +827,19 @@ namespace AmandsGraphics
                         break;
                     case "Laboratory_Scripts":
                         break;
-                    case "custom_Light":
+                    case "custom_Scripts":
                         Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value);
                         break;
-                    case "Lighthouse_Abadonned_pier":
+                    case "Lighthouse_Scripts":
                         Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value);
                         break;
-                    case "Shopping_Mall_Terrain":
+                    case "Shopping_Mall_Scripts":
                         Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value);
                         break;
-                    case "woods_combined":
+                    case "woods_Scripts":
                         Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value);
                         break;
-                    case "Reserve_Base_DesignStuff":
+                    case "Reserve_Base_Scripts":
                         Traverse.Create(mBOIT_Scattering).Field("ZeroLevel").SetValue(defaultMBOITZeroLevel + AmandsGraphicsPlugin.ReserveFogLevel.Value);
                         break;
                     case "shoreline_scripts":
@@ -910,7 +913,7 @@ namespace AmandsGraphics
             {
                 if (toDController != null)
                 {
-                    if (scene == "Shopping_Mall_Terrain")
+                    if (scene == "Shopping_Mall_Scripts")
                     {
                         NightAmbientContrast = new AnimationCurve(new Keyframe(-0.2522f, AmandsGraphicsPlugin.InterchangeNightAmbientContrast.Value), new Keyframe(-0.1261f, 1.15f));
                     }
@@ -944,7 +947,7 @@ namespace AmandsGraphics
                     if (scene != "Laboratory_Scripts") NVGAmbientContrast.RemoveKey(0);
                     switch (scene)
                     {
-                        case "Shopping_Mall_Terrain":
+                        case "Shopping_Mall_Scripts":
                             NVGAmbientContrast.AddKey(0f, AmandsGraphicsPlugin.InterchangeNVGAmbientContrast.Value);
                             break;
                         case "Laboratory_Scripts":
@@ -960,7 +963,7 @@ namespace AmandsGraphics
                 {
                     switch (scene)
                     {
-                        case "Shopping_Mall_Terrain":
+                        case "Shopping_Mall_Scripts":
                             levelSettings.NightVisionSkyColor = Color.Lerp(Color.black, defaultNightVisionSkyColor, AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.Value);
                             levelSettings.NightVisionEquatorColor = Color.Lerp(Color.black, defaultNightVisionEquatorColor, AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.Value);
                             levelSettings.NightVisionGroundColor = Color.Lerp(Color.black, defaultNightVisionGroundColor, AmandsGraphicsPlugin.InterchangeNVGOriginalSkyColor.Value);
@@ -980,7 +983,7 @@ namespace AmandsGraphics
                 {
                     switch (scene)
                     {
-                        case "Shopping_Mall_Terrain":
+                        case "Shopping_Mall_Scripts":
                             FPSCameraNightVision.NoiseIntensity = defaultNightVisionNoiseIntensity * AmandsGraphicsPlugin.InterchangeNVGNoiseIntensity.Value;
                             break;
                         default:
@@ -1118,7 +1121,7 @@ namespace AmandsGraphics
                             break;
                         case "Laboratory_Scripts":
                             break;
-                        case "custom_Light":
+                        case "custom_Scripts":
                             if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
                             {
                                 levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.CustomsMysticalGlowIntensity.Value;
@@ -1129,7 +1132,7 @@ namespace AmandsGraphics
                             }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
                             break;
-                        case "Lighthouse_Abadonned_pier":
+                        case "Lighthouse_Scripts":
                             if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
                             {
                                 levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.LighthouseMysticalGlowIntensity.Value;
@@ -1140,7 +1143,7 @@ namespace AmandsGraphics
                             }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value;
                             break;
-                        case "Shopping_Mall_Terrain":
+                        case "Shopping_Mall_Scripts":
                             if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
                             {
                                 levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.InterchangeMysticalGlowIntensity.Value;
@@ -1151,7 +1154,7 @@ namespace AmandsGraphics
                             }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value;
                             break;
-                        case "woods_combined":
+                        case "woods_Scripts":
                             if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
                             {
                                 levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.WoodsMysticalGlowIntensity.Value;
@@ -1162,7 +1165,7 @@ namespace AmandsGraphics
                             }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value;
                             break;
-                        case "Reserve_Base_DesignStuff":
+                        case "Reserve_Base_Scripts":
                             if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
                             {
                                 levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.ReserveMysticalGlowIntensity.Value;
@@ -1184,21 +1187,25 @@ namespace AmandsGraphics
                             }
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ShorelineFogLevel.Value;
                             break;
-                        case "Factory_Day":
-                            levelSettings.SkyColor = AmandsGraphicsPlugin.FactorySkyColor.Value / 10;
-                            levelSettings.EquatorColor = AmandsGraphicsPlugin.FactorySkyColor.Value / 10;
-                            levelSettings.GroundColor = AmandsGraphicsPlugin.FactorySkyColor.Value / 10;
-                            levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNVSkyColor.Value / 10;
-                            levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNVSkyColor.Value / 10;
-                            levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNVSkyColor.Value / 10;
+                        case "Factory_Rework_Day_Scripts":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.ShorelineMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             break;
-                        case "Factory_Night":
-                            levelSettings.SkyColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                            levelSettings.EquatorColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                            levelSettings.GroundColor = AmandsGraphicsPlugin.FactoryNightSkyColor.Value / 10;
-                            levelSettings.NightVisionSkyColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                            levelSettings.NightVisionEquatorColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
-                            levelSettings.NightVisionGroundColor = AmandsGraphicsPlugin.FactoryNightNVSkyColor.Value / 10;
+                        case "Factory_Rework_Night_Scripts":
+                            if (AmandsGraphicsPlugin.MysticalGlow.Value == EEnabledFeature.On)
+                            {
+                                levelSettings.SkyColor = Color.white * AmandsGraphicsPlugin.MysticalGlowIntensity.Value * AmandsGraphicsPlugin.ShorelineMysticalGlowIntensity.Value;
+                            }
+                            else
+                            {
+                                levelSettings.SkyColor = defaultSkyColor;
+                            }
                             break;
                         default:
                             levelSettings.SkyColor = AmandsGraphicsPlugin.HideoutSkyColor.Value / 10;
@@ -1222,19 +1229,19 @@ namespace AmandsGraphics
                             break;
                         case "Laboratory_Scripts":
                             break;
-                        case "custom_Light":
+                        case "custom_Scripts":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.CustomsFogLevel.Value;
                             break;
-                        case "Lighthouse_Abadonned_pier":
+                        case "Lighthouse_Scripts":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.LighthouseFogLevel.Value;
                             break;
-                        case "Shopping_Mall_Terrain":
+                        case "Shopping_Mall_Scripts":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.InterchangeFogLevel.Value;
                             break;
-                        case "woods_combined":
+                        case "woods_Scripts":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.WoodsFogLevel.Value;
                             break;
-                        case "Reserve_Base_DesignStuff":
+                        case "Reserve_Base_Scripts":
                             levelSettings.ZeroLevel = defaultZeroLevel + AmandsGraphicsPlugin.ReserveFogLevel.Value;
                             break;
                         case "shoreline_scripts":
@@ -1430,31 +1437,31 @@ namespace AmandsGraphics
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsACESS.Value;
                         break;
-                    case "custom_Light":
+                    case "custom_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsACESS.Value;
                         break;
-                    case "Factory_Day":
+                    case "Factory_Rework_Day_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryACESS.Value;
                         break;
-                    case "Factory_Night":
+                    case "Factory_Rework_Night_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightACESS.Value;
                         break;
-                    case "Lighthouse_Abadonned_pier":
+                    case "Lighthouse_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseACESS.Value;
                         break;
-                    case "Shopping_Mall_Terrain":
+                    case "Shopping_Mall_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeACESS.Value;
                         break;
-                    case "woods_combined":
+                    case "woods_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsACESS.Value;
                         break;
-                    case "Reserve_Base_DesignStuff":
+                    case "Reserve_Base_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveACES.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveACESS.Value;
                         break;
@@ -1489,31 +1496,31 @@ namespace AmandsGraphics
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LabsFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LabsFilmicS.Value;
                         break;
-                    case "custom_Light":
+                    case "custom_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.CustomsFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.CustomsFilmicS.Value;
                         break;
-                    case "Factory_Day":
+                    case "Factory_Rework_Day_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryFilmicS.Value;
                         break;
-                    case "Factory_Night":
+                    case "Factory_Rework_Night_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.FactoryNightFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.FactoryNightFilmicS.Value;
                         break;
-                    case "Lighthouse_Abadonned_pier":
+                    case "Lighthouse_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.LighthouseFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.LighthouseFilmicS.Value;
                         break;
-                    case "Shopping_Mall_Terrain":
+                    case "Shopping_Mall_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.InterchangeFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.InterchangeFilmicS.Value;
                         break;
-                    case "woods_combined":
+                    case "woods_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.WoodsFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.WoodsFilmicS.Value;
                         break;
-                    case "Reserve_Base_DesignStuff":
+                    case "Reserve_Base_Scripts":
                         FPSCameraPrismEffects.toneValues = AmandsGraphicsPlugin.ReserveFilmic.Value;
                         FPSCameraPrismEffects.secondaryToneValues = AmandsGraphicsPlugin.ReserveFilmicS.Value;
                         break;
@@ -1545,25 +1552,25 @@ namespace AmandsGraphics
                     case "Laboratory_Scripts":
                         tonemap = AmandsGraphicsPlugin.LabsTonemap.Value;
                         break;
-                    case "custom_Light":
+                    case "custom_Scripts":
                         tonemap = AmandsGraphicsPlugin.CustomsTonemap.Value;
                         break;
-                    case "Factory_Day":
+                    case "Factory_Rework_Day_Scripts":
                         tonemap = AmandsGraphicsPlugin.FactoryTonemap.Value;
                         break;
-                    case "Factory_Night":
+                    case "Factory_Rework_Night_Scripts":
                         tonemap = AmandsGraphicsPlugin.FactoryNightTonemap.Value;
                         break;
-                    case "Lighthouse_Abadonned_pier":
+                    case "Lighthouse_Scripts":
                         tonemap = AmandsGraphicsPlugin.LighthouseTonemap.Value;
                         break;
-                    case "Shopping_Mall_Terrain":
+                    case "Shopping_Mall_Scripts":
                         tonemap = AmandsGraphicsPlugin.InterchangeTonemap.Value;
                         break;
-                    case "woods_combined":
+                    case "woods_Scripts":
                         tonemap = AmandsGraphicsPlugin.WoodsTonemap.Value;
                         break;
-                    case "Reserve_Base_DesignStuff":
+                    case "Reserve_Base_Scripts":
                         tonemap = AmandsGraphicsPlugin.ReserveTonemap.Value;
                         break;
                     case "shoreline_scripts":
