@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.3")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.4")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -213,10 +213,6 @@ namespace AmandsGraphics
         public static ConfigEntry<Vector3> HideoutFilmic { get; set; }
         public static ConfigEntry<Vector3> HideoutFilmicS { get; set; }
 
-        public static ConfigEntry<Vector4> FactorySkyColor { get; set; }
-        public static ConfigEntry<Vector4> FactoryNVSkyColor { get; set; }
-        public static ConfigEntry<Vector4> FactoryNightSkyColor { get; set; }
-        public static ConfigEntry<Vector4> FactoryNightNVSkyColor { get; set; }
         public static ConfigEntry<Vector4> HideoutSkyColor { get; set; }
 
         public static ConfigEntry<Vector4> LightColorIndex0 { get; set; }
@@ -373,10 +369,10 @@ namespace AmandsGraphics
             StreetsMysticalGlowIntensity = Config.Bind("Streets", "MysticalGlow Intensity", 0.75f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             LabsTonemap = Config.Bind("Labs", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
-            LabsACES = Config.Bind("Labs", "ACES", new Vector3(20, 0.2f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            LabsACESS = Config.Bind("Labs", "ACESS", new Vector3(0, 2, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
+            LabsACES = Config.Bind("Labs", "ACES", new Vector3(20, 0.4f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            LabsACESS = Config.Bind("Labs", "ACESS", new Vector3(0, 1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
             LabsFilmic = Config.Bind("Labs", "Filmic", new Vector3(8f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            LabsFilmicS = Config.Bind("Labs", "FilmicS", new Vector3(0, 0.6f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            LabsFilmicS = Config.Bind("Labs", "FilmicS", new Vector3(0, 0.4f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
             LabsHBAOIntensity = Config.Bind("Labs", "HBAO Intensity", 0.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
             LabsHBAOSaturation = Config.Bind("Labs", "HBAO Saturation", 1.5f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 90, IsAdvanced = true }));
             LabsHBAOAlbedoMultiplier = Config.Bind("Labs", "HBAO Albedo Multiplier", 2f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 80, IsAdvanced = true }));
@@ -390,20 +386,16 @@ namespace AmandsGraphics
             CustomsMysticalGlowIntensity = Config.Bind("Customs", "MysticalGlow Intensity", 1.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             FactoryTonemap = Config.Bind("Factory", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
-            FactoryACES = Config.Bind("Factory", "ACES", new Vector3(15, 1, 15), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
-            FactoryACESS = Config.Bind("Factory", "ACESS", new Vector3(0, 1.25f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
-            FactoryFilmic = Config.Bind("Factory", "Filmic", new Vector3(1f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            FactoryACES = Config.Bind("Factory", "ACES", new Vector3(20, 0.8f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
+            FactoryACESS = Config.Bind("Factory", "ACESS", new Vector3(0, 1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
+            FactoryFilmic = Config.Bind("Factory", "Filmic", new Vector3(5f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             FactoryFilmicS = Config.Bind("Factory", "FilmicS", new Vector3(0, 0.3f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            FactorySkyColor = Config.Bind("Factory", "SkyColor", new Vector4(0.9f, 0.8f, 0.7f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            FactoryNVSkyColor = Config.Bind("Factory", "NVSkyColor", new Vector4(0.9f, 0.8f, 0.7f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
 
             FactoryNightTonemap = Config.Bind("FactoryNight", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
-            FactoryNightACES = Config.Bind("FactoryNight", "ACES", new Vector3(10, -0.2f, 10), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
-            FactoryNightACESS = Config.Bind("FactoryNight", "ACESS", new Vector3(0, 1, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
-            FactoryNightFilmic = Config.Bind("FactoryNight", "Filmic", new Vector3(10f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
-            FactoryNightFilmicS = Config.Bind("FactoryNight", "FilmicS", new Vector3(0, 0.8f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
-            FactoryNightSkyColor = Config.Bind("FactoryNight", "SkyColor", new Vector4(0.09f, 0.08f, 0.07f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 120, IsAdvanced = true }));
-            FactoryNightNVSkyColor = Config.Bind("FactoryNight", "NVSkyColor", new Vector4(0.5f, 0.5f, 0.5f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 110, IsAdvanced = true }));
+            FactoryNightACES = Config.Bind("FactoryNight", "ACES", new Vector3(20, 0.8f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
+            FactoryNightACESS = Config.Bind("FactoryNight", "ACESS", new Vector3(0, 1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
+            FactoryNightFilmic = Config.Bind("FactoryNight", "Filmic", new Vector3(5f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
+            FactoryNightFilmicS = Config.Bind("FactoryNight", "FilmicS", new Vector3(0, 0.26f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
 
             LighthouseFogLevel = Config.Bind("Lighthouse", "Fog Level", -100.0f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160 }));
             LighthouseTonemap = Config.Bind("Lighthouse", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150 }));
@@ -474,7 +466,7 @@ namespace AmandsGraphics
             new AmandsGraphicsOpticPatch().Enable();
             new AmandsGraphicsOpticSightPatch().Enable();
             new AmandsGraphicsCameraClassPatch().Enable();
-            new AmandsGraphicsmethod_22Patch().Enable();
+            new AmandsGraphicsmethod_25Patch().Enable();
             new AmandsGraphicsTacticalComboVisualControllerPatch().Enable();
             new AmandsGraphicsFastBlurPatch().Enable();
             new AmandsGraphicsMethod_7Patch().Enable();
@@ -484,7 +476,16 @@ namespace AmandsGraphics
         }
         private void DefaultValues()
         {
-            NVGOriginalColor.Value = (bool)NVGOriginalColor.DefaultValue;
+            LabsACES.Value = (Vector3)LabsACES.DefaultValue;
+            LabsACESS.Value = (Vector3)LabsACESS.DefaultValue;
+            LabsFilmicS.Value = (Vector3)LabsFilmicS.DefaultValue;
+            FactoryACES.Value = (Vector3)FactoryACES.DefaultValue;
+            FactoryACESS.Value = (Vector3)FactoryACESS.DefaultValue;
+            FactoryFilmic.Value = (Vector3)FactoryFilmic.DefaultValue;
+            FactoryNightACES.Value = (Vector3)FactoryNightACES.DefaultValue;
+            FactoryNightACESS.Value = (Vector3)FactoryNightACESS.DefaultValue;
+            FactoryNightFilmic.Value = (Vector3)FactoryNightFilmic.DefaultValue;
+            FactoryNightFilmicS.Value = (Vector3)FactoryNightFilmicS.DefaultValue;
         }
     }
     public class AmandsPlayerPatch : ModulePatch
@@ -548,10 +549,10 @@ namespace AmandsGraphics
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(HBAO).GetMethod("ApplyPreset", BindingFlags.Instance | BindingFlags.Public);
+            return typeof(HBAO_Core).GetMethod("ApplyPreset", BindingFlags.Instance | BindingFlags.Public);
         }
         [PatchPostfix]
-        private static void PatchPostFix(ref HBAO __instance, HBAO_Core.Preset preset)
+        private static void PatchPostFix(ref HBAO_Core __instance, HBAO_Core.Preset preset)
         {
             AmandsGraphicsClass.defaultFPSCameraHBAOAOSettings = __instance.aoSettings;
             AmandsGraphicsClass.defaultFPSCameraHBAOColorBleedingSettings = __instance.colorBleedingSettings;
@@ -635,7 +636,7 @@ namespace AmandsGraphics
             return AmandsGraphicsPlugin.UIDepthOfField.Value == EUIDepthOfField.Off;
         }
     }
-    public class AmandsGraphicsmethod_22Patch : ModulePatch
+    public class AmandsGraphicsmethod_25Patch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
         {
