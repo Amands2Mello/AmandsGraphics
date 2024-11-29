@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace AmandsGraphics
 {
-    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.4")]
+    [BepInPlugin("com.Amanda.Graphics", "Graphics", "1.6.5")]
     public class AmandsGraphicsPlugin : BaseUnityPlugin
     {
         public static GameObject Hook;
@@ -386,13 +386,13 @@ namespace AmandsGraphics
             CustomsMysticalGlowIntensity = Config.Bind("Customs", "MysticalGlow Intensity", 1.0f, new ConfigDescription("", new AcceptableValueRange<float>(0.0f, 2.0f), new ConfigurationManagerAttributes { Order = 100, IsAdvanced = true }));
 
             FactoryTonemap = Config.Bind("Factory", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
-            FactoryACES = Config.Bind("Factory", "ACES", new Vector3(20, 0.8f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
+            FactoryACES = Config.Bind("Factory", "ACES", new Vector3(25f, 0.6f, 25f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
             FactoryACESS = Config.Bind("Factory", "ACESS", new Vector3(0, 1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
             FactoryFilmic = Config.Bind("Factory", "Filmic", new Vector3(5f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             FactoryFilmicS = Config.Bind("Factory", "FilmicS", new Vector3(0, 0.3f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
 
             FactoryNightTonemap = Config.Bind("FactoryNight", "Tonemap", ETonemap.ACES, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 170 }));
-            FactoryNightACES = Config.Bind("FactoryNight", "ACES", new Vector3(20, 0.8f, 20), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
+            FactoryNightACES = Config.Bind("FactoryNight", "ACES", new Vector3(25f, 0.6f, 25f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 160, IsAdvanced = true }));
             FactoryNightACESS = Config.Bind("FactoryNight", "ACESS", new Vector3(0, 1f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 150, IsAdvanced = true }));
             FactoryNightFilmic = Config.Bind("FactoryNight", "Filmic", new Vector3(5f, 2f, 1.75f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 140, IsAdvanced = true }));
             FactoryNightFilmicS = Config.Bind("FactoryNight", "FilmicS", new Vector3(0, 0.26f, 0), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 130, IsAdvanced = true }));
